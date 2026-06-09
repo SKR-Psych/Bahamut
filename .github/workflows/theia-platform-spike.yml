@@ -41,9 +41,10 @@ jobs:
         run: cargo build --release --manifest-path services/bahamut-core/Cargo.toml
 
       - name: Setup Electron Resources Folder
+        shell: pwsh
         run: |
-          mkdir -p apps/bahamut-desktop/resources/branding
-          cp services/bahamut-core/target/release/bahamut-core.exe apps/bahamut-desktop/resources/bahamut-core.exe
+          New-Item -ItemType Directory -Force -Path "apps/bahamut-desktop/resources/branding" | Out-Null
+          Copy-Item -Path "services/bahamut-core/target/release/bahamut-core.exe" -Destination "apps/bahamut-desktop/resources/bahamut-core.exe" -Force
 
       - name: Install Theia Dependencies
         run: yarn install --frozen-lockfile
