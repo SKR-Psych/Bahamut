@@ -187,4 +187,3 @@ mod tests {
         assert_eq!(resp.workspace_name.unwrap(), "test-project");
     }
 }
-
