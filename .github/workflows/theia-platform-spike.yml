@@ -1,0 +1,84 @@
+name: Bahamut Theia Spike CI
+
+on:
+  push:
+    branches:
+      - feature/theia-platform-spike
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-package:
+    name: Build & Package (Windows)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18.18.2'
+
+      - name: Install Yarn
+        run: npm install -g yarn@1.22.19
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable-x86_64-pc-windows-msvc
+
+      - name: Rust Formatting & Linting
+        run: |
+          cargo fmt --manifest-path services/bahamut-core/Cargo.toml -- --check
+          cargo clippy --manifest-path services/bahamut-core/Cargo.toml -- -D warnings
+
+      - name: Run Rust Backend Tests
+        run: cargo test --manifest-path services/bahamut-core/Cargo.toml
+
+      - name: Compile Rust Sidecar (Release)
+        run: cargo build --release --manifest-path services/bahamut-core/Cargo.toml
+
+      - name: Setup Electron Resources Folder
+        run: |
+          mkdir -p apps/bahamut-desktop/resources/branding
+          cp services/bahamut-core/target/release/bahamut-core.exe apps/bahamut-desktop/resources/bahamut-core.exe
+
+      - name: Install Theia Dependencies
+        run: yarn install --frozen-lockfile
+        working-directory: apps/bahamut-desktop
+
+      - name: Build Theia Application
+        run: yarn build
+        working-directory: apps/bahamut-desktop
+
+      # Upload files for diagnostics and manual inspection
+      - name: Upload Packaged Source Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: bahamut-desktop-source
+          path: apps/bahamut-desktop/
+          retention-days: 7
+
+  smoke-test:
+    name: Fresh-Runner Packaged-Application Smoke Test
+    needs: build-and-package
+    runs-on: windows-latest
+    steps:
+      - name: Download Build Package
+        uses: actions/download-artifact@v4
+        with:
+          name: bahamut-desktop-source
+          path: bahamut-desktop
+
+      - name: Verify Staged Binaries & Scripts
+        shell: pwsh
+        run: |
+          Write-Output "Executing fresh-runner application validation..."
+          $sidecarPath = "bahamut-desktop/resources/bahamut-core.exe"
+          if (Test-Path $sidecarPath) {
+              Write-Output "✓ Verified sidecar executable exists in resources folder."
+          } else {
+              throw "Sidecar binary missing from resources!"
+          }

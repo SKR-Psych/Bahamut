@@ -1,7 +1,7 @@
 # ADR 002: Rejection of Eclipse Theia in Favor of Tauri + Monaco
 
 ## Status
-**Decided: Reverted/Rejected**
+**Proposed / Draft**
 
 ## Context and Spike Findings
 

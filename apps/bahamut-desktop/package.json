@@ -19,14 +19,15 @@
   },
   "devDependencies": {
     "@theia/cli": "1.49.0",
-    "electron": "^28.2.0",
-    "typescript": "^5.2.2"
+    "electron": "28.2.0",
+    "typescript": "5.2.2"
   },
   "scripts": {
     "prepare": "theia build",
     "start": "theia start",
     "build": "tsc && theia build",
-    "electron": "theia start --mode=electron"
+    "electron": "theia start --mode=electron",
+    "package": "theia package --mode=electron"
   },
   "theia": {
     "frontend": {
