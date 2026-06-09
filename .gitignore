@@ -51,3 +51,11 @@ $RECYCLE.BIN/
 *.pem
 *.key
 *.cert
+
+# Eclipse Theia generated build artifacts
+**/src-gen/
+/apps/bahamut-desktop/lib/
+/apps/bahamut-desktop/webpack.config.js
+/apps/bahamut-desktop/gen-webpack.config.js
+/apps/bahamut-desktop/gen-webpack.node.config.js
+

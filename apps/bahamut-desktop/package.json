@@ -4,6 +4,9 @@
   "description": "Bahamut desktop app shell using Eclipse Theia",
   "license": "MIT",
   "private": true,
+  "engines": {
+    "node": ">=20.11.1"
+  },
   "dependencies": {
     "@theia/core": "1.49.0",
     "@theia/electron": "1.49.0",
