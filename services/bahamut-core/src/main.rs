@@ -1,9 +1,5 @@
-use std::env;
-use std::net::SocketAddr;
-use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
 use axum::{
-    extract::{Query, State},
+    extract::State,
     http::{HeaderMap, StatusCode},
     middleware::{self, Next},
     response::IntoResponse,
@@ -11,7 +7,10 @@ use axum::{
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
-use sysinfo::{System, SystemExt};
+use std::env;
+use std::net::SocketAddr;
+use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 use tower_http::{limit::RequestBodyLimitLayer, timeout::TimeoutLayer};
 
 struct AppState {
@@ -65,7 +64,10 @@ async fn main() {
         .route("/v1/health", get(handle_health))
         .route("/v1/ollama/status", get(handle_ollama_status))
         .route("/v1/sandbox", get(handle_sandbox))
-        .layer(middleware::from_fn_with_state(state.clone(), auth_middleware))
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            auth_middleware,
+        ))
         .layer(RequestBodyLimitLayer::new(1024 * 16)) // Max 16KB requests
         .layer(TimeoutLayer::new(std::time::Duration::from_secs(5))) // 5 second timeout
         .with_state(state);
@@ -115,12 +117,18 @@ async fn handle_ollama_status() -> impl IntoResponse {
             match res {
                 Ok(response) => {
                     #[derive(Deserialize)]
-                    struct ModelItem { name: String }
+                    struct ModelItem {
+                        name: String,
+                    }
                     #[derive(Deserialize)]
-                    struct TagsResponse { models: Vec<ModelItem> }
+                    struct TagsResponse {
+                        models: Vec<ModelItem>,
+                    }
 
                     let tags: Result<TagsResponse, _> = response.json().await;
-                    let models = tags.map(|t| t.models.into_iter().map(|m| m.name).collect()).unwrap_or_default();
+                    let models = tags
+                        .map(|t| t.models.into_iter().map(|m| m.name).collect())
+                        .unwrap_or_default();
                     (true, models)
                 }
                 Err(_) => (false, vec![]),
@@ -140,7 +148,11 @@ async fn handle_sandbox(State(state): State<Arc<AppState>>) -> impl IntoResponse
     let (active, name) = match &*root_guard {
         Some(path) => (
             true,
-            Some(path.file_name().map(|f| f.to_string_lossy().to_string()).unwrap_or_else(|| "Workspace".to_string())),
+            Some(
+                path.file_name()
+                    .map(|f| f.to_string_lossy().to_string())
+                    .unwrap_or_else(|| "Workspace".to_string()),
+            ),
         ),
         None => (false, None),
     };
@@ -150,3 +162,29 @@ async fn handle_sandbox(State(state): State<Arc<AppState>>) -> impl IntoResponse
         workspace_name: name,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_health_response_schema() {
+        let resp = HealthResponse {
+            status: "ok",
+            version: "0.1.0",
+        };
+        assert_eq!(resp.status, "ok");
+        assert_eq!(resp.version, "0.1.0");
+    }
+
+    #[test]
+    fn test_sandbox_response_schema() {
+        let resp = SandboxResponse {
+            sandbox_active: true,
+            workspace_name: Some("test-project".to_string()),
+        };
+        assert!(resp.sandbox_active);
+        assert_eq!(resp.workspace_name.unwrap(), "test-project");
+    }
+}
+
