@@ -1,0 +1,39 @@
+{
+  "name": "bahamut-desktop",
+  "version": "0.1.0",
+  "description": "Bahamut desktop app shell using Eclipse Theia",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "@theia/core": "1.49.0",
+    "@theia/electron": "1.49.0",
+    "@theia/filesystem": "1.49.0",
+    "@theia/editor": "1.49.0",
+    "@theia/monaco": "1.49.0",
+    "@theia/terminal": "1.49.0",
+    "@theia/git": "1.49.0",
+    "@theia/file-search": "1.49.0",
+    "@theia/search-in-workspace": "1.49.0",
+    "@theia/variable-resolver": "1.49.0",
+    "@theia/workspace": "1.49.0"
+  },
+  "devDependencies": {
+    "@theia/cli": "1.49.0",
+    "electron": "^28.2.0",
+    "typescript": "^5.2.2"
+  },
+  "scripts": {
+    "prepare": "theia build",
+    "start": "theia start",
+    "build": "tsc && theia build",
+    "electron": "theia start --mode=electron"
+  },
+  "theia": {
+    "frontend": {
+      "config": {
+        "applicationName": "Bahamut",
+        "defaultTheme": "bahamut-dark-theme"
+      }
+    }
+  }
+}

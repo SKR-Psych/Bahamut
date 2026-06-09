@@ -11,9 +11,12 @@ yarn-error.log*
 .eslintcache
 
 # Production builds
-/dist/
-/src-tauri/target/
-/src-tauri/binaries/
+dist/
+**/dist/
+target/
+**/target/
+binaries/
+**/binaries/
 
 # IDEs and Editors
 .vscode/

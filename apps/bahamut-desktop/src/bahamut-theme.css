@@ -1,0 +1,83 @@
+/* Bahamut Theia Branded Theme Styling */
+
+:root {
+  /* Brand color tokens */
+  --bahamut-soft-black: #0B0B0A;
+  --bahamut-muted-olive: #6F7448;
+  --bahamut-dusty-rose: #B98A84;
+
+  /* Theia style overrides */
+  --theia-ui-font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --theia-layout-color0: var(--bahamut-soft-black);
+  
+  /* Glassmorphism settings */
+  --bahamut-glass-bg: rgba(11, 11, 10, 0.45);
+  --bahamut-glass-border: 1px solid rgba(185, 138, 132, 0.16);
+  --bahamut-glass-blur: blur(12px);
+}
+
+/* Accessibility settings: disables transparency and blur */
+.accessibility-solid-fallback {
+  --bahamut-glass-bg: #111110 !important;
+  --bahamut-glass-border: 1px solid #282825 !important;
+  --bahamut-glass-blur: none !important;
+}
+
+/* Glassmorphic Application Shell elements */
+.theia-app-shell {
+  background: radial-gradient(circle at top right, #1f2119 0%, var(--bahamut-soft-black) 75%) !important;
+}
+
+/* Customized Agent Timeline widget */
+.bahamut-agent-panel {
+  background: var(--bahamut-glass-bg) !important;
+  backdrop-filter: var(--bahamut-glass-blur) !important;
+  -webkit-backdrop-filter: var(--bahamut-glass-blur) !important;
+  border-right: var(--bahamut-glass-border) !important;
+  padding: 1.5rem;
+  color: #e3e3e2;
+  box-sizing: border-box;
+}
+
+.bahamut-title {
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: #ffffff;
+  margin-bottom: 0.5rem;
+}
+
+/* Action button styling using Muted Olive */
+.bahamut-primary-action {
+  background: var(--bahamut-muted-olive) !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 4px !important;
+  padding: 0.5rem 1rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  box-shadow: 0 4px 12px rgba(111, 116, 72, 0.2) !important;
+}
+
+.bahamut-primary-action:hover {
+  filter: brightness(1.1);
+}
+
+/* Timeline items styled with Dusty Rose */
+.bahamut-timeline-item {
+  border-left: 2px solid var(--bahamut-dusty-rose);
+  padding-left: 1rem;
+  margin-bottom: 1.25rem;
+  position: relative;
+}
+
+.bahamut-timeline-item::before {
+  content: ' ';
+  display: block;
+  width: 8px;
+  height: 8px;
+  background: var(--bahamut-dusty-rose);
+  border-radius: 50%;
+  position: absolute;
+  left: -5px;
+  top: 4px;
+}
