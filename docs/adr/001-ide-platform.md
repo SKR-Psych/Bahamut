@@ -1,5 +1,17 @@
 # ADR 001: IDE Platform Selection
 
+## Status
+
+**Superseded by [ADR-002](002-theia-platform-rejection.md)** (2026-06-10).
+
+The Theia recommendation below was validated by the
+`feature/theia-platform-spike` work and rejected on the evidence recorded in
+ADR-002: no packaged Theia application was ever produced or launched, the
+native dependency and packaging burden was high, and the security perimeter
+would have had to be rebuilt behind a localhost IPC boundary. Bahamut's
+production architecture is Tauri v2 + React + TypeScript + Monaco Editor.
+This document is retained as the record of the original comparison.
+
 ## Context and Requirements
 
 Bahamut requires a robust desktop application packaging two distinct, integrated modes:
