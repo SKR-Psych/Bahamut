@@ -144,7 +144,7 @@ export function SetupWizard({ onComplete }: { onComplete: (model: string) => voi
                   <div>
                     <p className="status-error">✕ Ollama is not running or installed</p>
                     <p className="small-text">
-                      Please make sure Ollama is installed from <a href="https://ollama.com" target="_blank" rel="noreferrer">ollama.com</a> and running on port 11434.
+                      Please make sure Ollama is installed from <code>ollama.com</code> and running on port 11434.
                     </p>
                   </div>
                 )}

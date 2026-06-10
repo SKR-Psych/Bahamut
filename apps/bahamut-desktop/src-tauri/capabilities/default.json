@@ -1,10 +1,10 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Capability for the main window",
+  "description": "Least-privilege capability for the main window. core:default covers Tauri IPC plumbing only; dialog:allow-open permits the native folder picker (user-driven, returns a path string — all file I/O still goes through the sandboxed Rust commands). No filesystem, shell, or opener permissions are granted to the webview.",
   "windows": ["main"],
   "permissions": [
     "core:default",
-    "opener:default"
+    "dialog:allow-open"
   ]
 }
