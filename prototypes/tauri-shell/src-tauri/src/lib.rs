@@ -37,6 +37,7 @@ pub fn run() {
             commands::system::get_hardware_info,
             commands::system::check_ollama_status,
             database::get_audit_logs,
+            database::verify_audit_chain,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
