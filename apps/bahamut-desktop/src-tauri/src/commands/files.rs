@@ -89,7 +89,7 @@ pub struct RollbackResponse {
     pub undo_snapshot_id: Option<i64>,
 }
 
-fn sha256_hex(bytes: &[u8]) -> String {
+pub(crate) fn sha256_hex(bytes: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(bytes);
     let digest = hasher.finalize();
@@ -101,11 +101,11 @@ fn sha256_hex(bytes: &[u8]) -> String {
     hex
 }
 
-fn is_ignored_dir(name: &str) -> bool {
+pub(crate) fn is_ignored_dir(name: &str) -> bool {
     IGNORED_DIRS.iter().any(|d| name.eq_ignore_ascii_case(d))
 }
 
-fn has_binary_extension(path: &Path) -> bool {
+pub(crate) fn has_binary_extension(path: &Path) -> bool {
     path.extension()
         .and_then(|e| e.to_str())
         .map(|ext| {
@@ -354,7 +354,8 @@ pub fn save_file_core(
         .map_err(|_| "Refusing to snapshot binary content".to_string())?;
 
     // Pre-change snapshot, then atomic replace.
-    let snapshot_id = database::insert_snapshot(conn, &path_str, &current_text, &current_hash)?;
+    let snapshot_id =
+        database::insert_snapshot(conn, &path_str, &current_text, &current_hash, "save")?;
     atomic_write(&validated, content.as_bytes())?;
     let new_hash = sha256_hex(content.as_bytes());
 
@@ -409,7 +410,13 @@ pub fn rollback_core(
         Ok(bytes) => {
             let hash = sha256_hex(&bytes);
             match String::from_utf8(bytes) {
-                Ok(text) => Some(database::insert_snapshot(conn, &path_str, &text, &hash)?),
+                Ok(text) => Some(database::insert_snapshot(
+                    conn,
+                    &path_str,
+                    &text,
+                    &hash,
+                    "pre-rollback",
+                )?),
                 Err(_) => None,
             }
         }
@@ -449,7 +456,7 @@ pub fn rollback_core(
 // Tauri command wrappers (thin: lock state, delegate to core functions)
 // ---------------------------------------------------------------------------
 
-fn with_root_and_conn<T>(
+pub(crate) fn with_root_and_conn<T>(
     state: &State<'_, AppState>,
     f: impl FnOnce(&Path, &Connection) -> Result<T, String>,
 ) -> Result<T, String> {
@@ -462,6 +469,20 @@ fn with_root_and_conn<T>(
         .as_ref()
         .ok_or_else(|| "Database connection not initialized".to_string())?;
     f(root, conn)
+}
+
+/// Like `with_root_and_conn`, but usable before a project is opened
+/// (settings, for example, are not project-scoped).
+pub(crate) fn with_root_and_conn_optional<T>(
+    state: &State<'_, AppState>,
+    f: impl FnOnce(Option<&Path>, &Connection) -> Result<T, String>,
+) -> Result<T, String> {
+    let root_guard = state.project_root.lock().map_err(|_| "Mutex error")?;
+    let conn_guard = state.db_conn.lock().map_err(|_| "Mutex error")?;
+    let conn = conn_guard
+        .as_ref()
+        .ok_or_else(|| "Database connection not initialized".to_string())?;
+    f(root_guard.as_deref(), conn)
 }
 
 #[tauri::command]
@@ -509,6 +530,46 @@ pub fn list_file_snapshots(
     with_root_and_conn(&state, |root, conn| {
         let validated = validate_path(root, &PathBuf::from(path))?;
         database::list_snapshots_for_path(conn, &validated.to_string_lossy())
+    })
+}
+
+#[derive(Debug, Serialize)]
+pub struct SnapshotContentResponse {
+    pub snapshot_id: i64,
+    pub path: String,
+    pub content: String,
+    pub content_hash: String,
+    pub created_at: String,
+    pub operation: String,
+}
+
+/// Returns a snapshot's stored content for the diff view. The stored path is
+/// revalidated against the *current* project root so snapshots from another
+/// project cannot be read after switching workspaces.
+pub fn snapshot_content_core(
+    root: &Path,
+    conn: &Connection,
+    snapshot_id: i64,
+) -> Result<SnapshotContentResponse, String> {
+    let snapshot = database::get_snapshot(conn, snapshot_id)?;
+    validate_path(root, &PathBuf::from(&snapshot.path))?;
+    Ok(SnapshotContentResponse {
+        snapshot_id,
+        path: snapshot.path,
+        content: snapshot.content,
+        content_hash: snapshot.content_hash,
+        created_at: snapshot.created_at,
+        operation: snapshot.operation,
+    })
+}
+
+#[tauri::command]
+pub fn get_snapshot_content(
+    state: State<'_, AppState>,
+    snapshot_id: i64,
+) -> Result<SnapshotContentResponse, String> {
+    with_root_and_conn(&state, |root, conn| {
+        snapshot_content_core(root, conn, snapshot_id)
     })
 }
 

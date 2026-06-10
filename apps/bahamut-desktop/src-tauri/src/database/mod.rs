@@ -19,6 +19,16 @@ pub const MAX_FILE_SIZE_KEY: &str = "max_file_size_bytes";
 /// Default maximum file size when no setting is stored: 2 MiB.
 pub const DEFAULT_MAX_FILE_SIZE: u64 = 2 * 1024 * 1024;
 
+/// Settings key for the maximum file size (bytes) project-wide search will
+/// scan. Stored as a decimal string.
+pub const MAX_SEARCH_FILE_SIZE_KEY: &str = "max_search_file_size_bytes";
+
+/// Default maximum searched-file size: 1 MiB.
+pub const DEFAULT_MAX_SEARCH_FILE_SIZE: u64 = 1024 * 1024;
+
+/// Settings key holding UI preferences as a validated JSON object.
+pub const UI_PREFS_KEY: &str = "ui_prefs";
+
 const AUDIT_TABLE_COLUMNS: &str = "(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     seq INTEGER NOT NULL UNIQUE,
@@ -97,7 +107,53 @@ pub fn init_schema(conn: &Connection) -> Result<(), String> {
     )
     .map_err(|e| format!("Failed to index snapshots table: {}", e))?;
 
+    // Migration: pre-existing snapshots tables lack the operation column.
+    if !column_exists(conn, "snapshots", "operation")? {
+        conn.execute(
+            "ALTER TABLE snapshots ADD COLUMN operation TEXT NOT NULL DEFAULT 'save'",
+            [],
+        )
+        .map_err(|e| format!("Failed to add snapshots.operation column: {}", e))?;
+    }
+
     Ok(())
+}
+
+/// Reads a raw setting value by key.
+pub fn get_setting(conn: &Connection, key: &str) -> Result<Option<String>, String> {
+    conn.query_row(
+        "SELECT value FROM settings WHERE key = ?1",
+        params![key],
+        |row| row.get::<_, String>(0),
+    )
+    .optional()
+    .map_err(|e| format!("Failed to read setting {}: {}", key, e))
+}
+
+/// Inserts or replaces a setting value.
+pub fn set_setting(conn: &Connection, key: &str, value: &str) -> Result<(), String> {
+    conn.execute(
+        "INSERT OR REPLACE INTO settings (key, value) VALUES (?1, ?2)",
+        params![key, value],
+    )
+    .map_err(|e| format!("Failed to write setting {}: {}", key, e))?;
+    Ok(())
+}
+
+/// Removes a setting key (falls back to defaults on next read).
+pub fn delete_setting(conn: &Connection, key: &str) -> Result<(), String> {
+    conn.execute("DELETE FROM settings WHERE key = ?1", params![key])
+        .map_err(|e| format!("Failed to delete setting {}: {}", key, e))?;
+    Ok(())
+}
+
+/// Reads the configurable maximum searched-file size, with default fallback.
+pub fn get_max_search_file_size(conn: &Connection) -> u64 {
+    get_setting(conn, MAX_SEARCH_FILE_SIZE_KEY)
+        .ok()
+        .flatten()
+        .and_then(|v| v.parse::<u64>().ok())
+        .unwrap_or(DEFAULT_MAX_SEARCH_FILE_SIZE)
 }
 
 /// Reads the configurable maximum file size from settings, falling back to
@@ -116,15 +172,18 @@ pub fn get_max_file_size(conn: &Connection) -> u64 {
 }
 
 /// Stores a pre-change snapshot of a file and returns the snapshot id.
+/// `operation` records why the snapshot was taken (save, pre-rollback,
+/// pre-delete) so the UI can explain history meaningfully.
 pub fn insert_snapshot(
     conn: &Connection,
     path: &str,
     content: &str,
     content_hash: &str,
+    operation: &str,
 ) -> Result<i64, String> {
     conn.execute(
-        "INSERT INTO snapshots (path, content, content_hash) VALUES (?1, ?2, ?3)",
-        params![path, content, content_hash],
+        "INSERT INTO snapshots (path, content, content_hash, operation) VALUES (?1, ?2, ?3, ?4)",
+        params![path, content, content_hash, operation],
     )
     .map_err(|e| format!("Failed to store snapshot: {}", e))?;
     Ok(conn.last_insert_rowid())
@@ -134,17 +193,22 @@ pub struct SnapshotRecord {
     pub path: String,
     pub content: String,
     pub content_hash: String,
+    pub created_at: String,
+    pub operation: String,
 }
 
 pub fn get_snapshot(conn: &Connection, snapshot_id: i64) -> Result<SnapshotRecord, String> {
     conn.query_row(
-        "SELECT path, content, content_hash FROM snapshots WHERE id = ?1",
+        "SELECT path, content, content_hash, created_at, operation
+         FROM snapshots WHERE id = ?1",
         params![snapshot_id],
         |row| {
             Ok(SnapshotRecord {
                 path: row.get(0)?,
                 content: row.get(1)?,
                 content_hash: row.get(2)?,
+                created_at: row.get(3)?,
+                operation: row.get(4)?,
             })
         },
     )
@@ -159,13 +223,14 @@ pub struct SnapshotMeta {
     pub created_at: String,
     pub content_hash: String,
     pub size_bytes: i64,
+    pub operation: String,
 }
 
 /// Newest-first snapshot metadata for one file (content omitted).
 pub fn list_snapshots_for_path(conn: &Connection, path: &str) -> Result<Vec<SnapshotMeta>, String> {
     let mut stmt = conn
         .prepare(
-            "SELECT id, created_at, content_hash, LENGTH(CAST(content AS BLOB))
+            "SELECT id, created_at, content_hash, LENGTH(CAST(content AS BLOB)), operation
              FROM snapshots WHERE path = ?1 ORDER BY id DESC LIMIT 50",
         )
         .map_err(|e| format!("Failed to read snapshots: {}", e))?;
@@ -176,6 +241,7 @@ pub fn list_snapshots_for_path(conn: &Connection, path: &str) -> Result<Vec<Snap
                 created_at: row.get(1)?,
                 content_hash: row.get(2)?,
                 size_bytes: row.get(3)?,
+                operation: row.get(4)?,
             })
         })
         .map_err(|e| format!("Failed to read snapshots: {}", e))?;
