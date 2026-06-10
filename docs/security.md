@@ -19,7 +19,9 @@ Bahamut places safety and user control first. It operates under a strict securit
 - **Parameters Control**: All commands support timeouts and cancellation tokens. Spawning is handled via discrete child processes.
 
 ### 4. Audit Log Database
-All interactions are recorded in an audit database (`%APPDATA%/Bahamut/bahamut.db`) which is write-only from the frontend perspective:
+All interactions are recorded in an audit database (`%APPDATA%/Bahamut/bahamut.db`) which is write-only from the frontend perspective. The log is **tamper-evident via hash chaining; verification detects any modification or deletion**: every entry stores a monotonically increasing sequence number and an `entry_hash` computed as SHA-256 over (sequence number ‖ previous entry hash ‖ canonical JSON serialisation of the entry payload). The first entry chains from a fixed genesis value, and the current chain head is mirrored in the settings table so deletion of trailing rows is also detected. The `verify_audit_chain` command walks the table and reports the first broken link, allowing the UI to display an "audit log verified" status. Note this is tamper *evidence*, not tamper *prevention*: a local attacker with database access can still modify the file, but any modification or deletion is detectable on verification.
+
+Recorded events:
 - **Proposed Actions**: LLM prompt generation, proposed edits, and suggested commands.
 - **Approvals & Rejections**: Logs user choice for commands and code changes.
 - **File Modifications**: Success/failure and hash checks of written files.

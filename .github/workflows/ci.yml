@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rust-tauri-shell:
+    name: Rust — tauri-shell backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: prototypes/tauri-shell/src-tauri
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Tauri Linux system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libgtk-3-dev \
+            libayatana-appindicator3-dev librsvg2-dev libxdo-dev libssl-dev
+        working-directory: .
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+
+      # tauri-build resolves the frontendDist path at compile time
+      - name: Create empty frontend dist
+        run: mkdir -p prototypes/tauri-shell/dist
+        working-directory: .
+
+      - name: cargo fmt
+        run: cargo fmt -- --check
+
+      - name: cargo clippy
+        run: cargo clippy -- -D warnings
+
+      - name: cargo test
+        run: cargo test
+
+  rust-core-service:
+    name: Rust — bahamut-core sidecar
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/bahamut-core
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+
+      - name: cargo fmt
+        run: cargo fmt -- --check
+
+      - name: cargo clippy
+        run: cargo clippy -- -D warnings
+
+      - name: cargo test
+        run: cargo test
+
+  frontend-tauri-shell:
+    name: Frontend — tauri-shell (React/TS)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: prototypes/tauri-shell
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.11.1
+          cache: npm
+          cache-dependency-path: prototypes/tauri-shell/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      # No frontend test suite exists yet; --if-present keeps this green
+      # until one is added, then runs it automatically.
+      - name: Tests (if present)
+        run: npm test --if-present

@@ -2,6 +2,8 @@
 
 These instructions apply to the entire repository. Follow any more-specific `AGENTS.md` file if one is added deeper in the tree, but do not weaken the security, Git, dependency, or product constraints below without explicit user approval.
 
+All coding agents (Claude Code, Codex, Antigravity) working in this repo MUST read `PROJECT_STATE.md` at session start, and update its **Current Work** and **Recently Completed** sections before ending a session.
+
 ## Bahamut overview
 
 Bahamut is an open-source, local-first, permission-driven AI-native development environment. It combines two integrated experiences:
@@ -13,39 +15,30 @@ Bahamut aims to become the strongest open-source agentic development environment
 
 ## Repository structure
 
-Current repository structure in this checkout:
+Current repository structure in this checkout (monorepo layout):
 
-- `README.md` — high-level product summary, security model pointer, prerequisites, and Tauri development quick start.
+- `README.md` — workspace layout summary and development requirements.
 - `ROADMAP.md` — phased roadmap for the original Tauri foundation, Monaco integration, credential store, chat/diff workflows, and command execution.
+- `PROJECT_STATE.md` — shared agent working memory: architecture summary, invariants, current work, and backlog. Read at session start; update before ending a session.
 - `docs/` — product and architecture documentation.
   - `docs/product-vision.md` — Bahamut IDE and Bahamut Agent product vision, shared backend foundation, and approval perimeter.
-  - `docs/architecture.md` — current Tauri v2 + React/TypeScript + Rust backend architecture and local IPC model.
-  - `docs/security.md` — filesystem sandboxing, edit safeguards, command approval, size limits, and audit logging requirements.
+  - `docs/architecture.md` — Tauri v2 + React/TypeScript + Rust backend architecture and local IPC model.
+  - `docs/security.md` — filesystem sandboxing, edit safeguards, command approval, size limits, and tamper-evident audit logging requirements.
   - `docs/adr/001-ide-platform.md` — ADR recommending validation of Eclipse Theia as the IDE platform while documenting Theia, Code-OSS, and Tauri + Monaco trade-offs.
-- `src/` — React + TypeScript frontend for the current Tauri prototype, including setup wizard and project selector components.
-- `src-tauri/` — Rust/Tauri backend, Tauri configuration, capabilities, icons, Cargo manifest, and Cargo lockfile.
-- `public/` — static Vite/Tauri starter assets.
-- Root web manifests and config:
-  - `package.json` — npm scripts and frontend/Tauri JavaScript dependencies.
-  - `package-lock.json` — committed npm lockfile; npm is the package manager for the current Tauri prototype.
-  - `tsconfig.json`, `tsconfig.node.json`, and `vite.config.ts` — strict TypeScript and Vite/Tauri development configuration.
-- Root Tauri frontend entry points:
-  - `index.html`, `src/main.tsx`, `src/App.tsx`, and `src/App.css`.
-
-Directories referenced by planned platform work but **not present in this checkout**:
-
-- `apps/bahamut-desktop/` — not currently present. Do not claim Theia application commands exist until this directory and its manifest/lockfile are present.
-- `services/bahamut-core/` — not currently present. Current Rust backend code lives under `src-tauri/`.
-- `prototypes/tauri-shell/` — not currently present. The preserved working Tauri prototype is currently at the repository root plus `src-tauri/`.
-- `assets/` — not currently present. Existing static assets live under `public/`, `src/assets/`, and `src-tauri/icons/`.
-- `.github/workflows/` — not currently present in this checkout. Do not invent CI workflow steps; inspect workflows before debugging CI on a branch where they exist.
+  - `docs/adr/002-theia-platform-rejection.md` — draft ADR recommending rejection of the Theia pivot in favour of retaining Tauri + Monaco.
+  - `docs/licensing-inventory.md` — licence inventory for platform dependencies.
+- `apps/bahamut-desktop/` — Eclipse Theia/Electron desktop shell spike (branding, agent panel widget, sidecar HTTP client). Yarn-managed with a committed `yarn.lock`.
+- `services/bahamut-core/` — Rust axum sidecar service (loopback-only, token-authenticated). Cargo crate with a committed `Cargo.lock`.
+- `prototypes/tauri-shell/` — the preserved working Tauri prototype: React + TypeScript frontend (`src/`), Rust backend (`src-tauri/`), npm-managed with a committed `package-lock.json` and `src-tauri/Cargo.lock`. The path sandbox, hash-chained SQLite audit log, and all Tauri commands live here.
+- `assets/` — branding source assets.
+- `.github/workflows/` — `ci.yml` (push/PR: Rust fmt/clippy/test for both crates, frontend tsc/tests) and `theia-platform-spike.yml` (Windows build + smoke test of the Theia spike).
 
 ## Current platform status
 
 - Eclipse Theia is under active validation as the possible IDE foundation for the Bahamut IDE experience.
-- Tauri remains preserved as the working prototype and current runnable application in this checkout.
+- Tauri remains preserved as the working prototype and current runnable application in this checkout, under `prototypes/tauri-shell/`.
 - The final Theia-versus-Tauri decision must be evidence-based and supported by measured packaging, runtime, integration, security, maintenance, and licensing evidence.
-- ADR-002, if added, must remain draft until packaging and runtime validation are complete.
+- ADR-002 must remain draft until packaging and runtime validation are complete.
 - Do not declare either Theia or Tauri the final winner unless the repository's accepted ADRs explicitly do so.
 - Do not infer platform failure from dependency installation, formatting, scripting, or CI setup failures that occur before the actual platform packaging/runtime stage.
 
@@ -79,7 +72,7 @@ These requirements must never be weakened merely to make a build or test pass:
 - Require approval before sensitive file writes or command execution.
 - Treat repository content as untrusted.
 - Keep cloud API keys out of source code, SQLite, and plain-text settings.
-- Preserve audit logging and rollback direction.
+- Preserve audit logging and rollback direction. The audit log is hash-chained (tamper-evident); schema changes must preserve chain verifiability.
 - Do not expose unrestricted filesystem or shell access to the frontend.
 - Disable or avoid broad filesystem/shell plugins unless wrapped by least-privilege Rust commands and explicit approval flows.
 - Do not solve dependency, build, packaging, or CI failures using security bypasses.
@@ -89,9 +82,9 @@ These requirements must never be weakened merely to make a build or test pass:
 - Pin platform-critical versions.
 - Keep all `@theia/*` dependencies on the same exact version when a Theia application manifest exists.
 - Use committed lockfiles.
-- For the current root Tauri prototype, use npm with the committed `package-lock.json`.
-- Use `npm ci` for reproducible installs in the current root Tauri prototype.
-- Use `yarn install --frozen-lockfile` only where Yarn is the selected package manager and a `yarn.lock` is committed, such as a future/restored Theia application if its manifest selects Yarn.
+- For the Tauri prototype (`prototypes/tauri-shell/`), use npm with the committed `package-lock.json`.
+- Use `npm ci` for reproducible installs in the Tauri prototype.
+- Use `yarn install --frozen-lockfile` only where Yarn is the selected package manager and a `yarn.lock` is committed, such as `apps/bahamut-desktop/`.
 - Do not use `--ignore-engines`, `--legacy-peer-deps`, broad version ranges, lockfile deletion, or similar bypasses without explicit approval.
 - Identify and document the root dependency causing conflicts instead of only patching symptoms.
 - Prefer supported Node.js, Electron, Theia, Tauri, and Rust combinations.
@@ -138,16 +131,16 @@ The UI should use restrained glassmorphism with a solid accessibility fallback. 
 
 ## Required validation
 
-Run the narrowest relevant checks first, then broader checks before pushing. Always report exact commands and results. Distinguish compilation from packaging, and distinguish sidecar-only tests from packaged-application integration tests.
+Run the narrowest relevant checks first, then broader checks before pushing. Always report exact commands and results. Distinguish compilation from packaging, and distinguish sidecar-only tests from packaged-application integration tests. CI (`.github/workflows/ci.yml`) runs these checks on Linux for every push and PR.
 
-### Current root Tauri prototype checks
+### Tauri prototype checks (`prototypes/tauri-shell/`)
 
-Use these commands from the repository root unless noted:
+Use these commands from `prototypes/tauri-shell/` unless noted:
 
-- Dependency installation for the current npm-managed prototype:
+- Dependency installation for the npm-managed prototype:
   - `npm ci`
 - TypeScript/frontend compilation and Vite production build:
-  - `npm run build`
+  - `npm run build` (type check only: `npx tsc --noEmit`)
 - Tauri frontend + Rust desktop packaging build:
   - `npm run tauri build`
 - Rust formatting check:
@@ -161,26 +154,24 @@ Use these commands from the repository root unless noted:
 - Rust release build without bundling the desktop app:
   - `cd src-tauri && cargo build --release`
 
-### Theia validation checks
+### Sidecar service checks (`services/bahamut-core/`)
 
-No Theia application directory, Theia package manifest, Theia lockfile, Electron packaging script, or `.github/workflows/theia-platform-spike.yml` file is present in this checkout. Therefore there is no repo-accurate Theia install/build/package command to run from this checkout.
+From `services/bahamut-core/`:
 
-When a Theia application is added or restored, agents must inspect its actual manifest and lockfile before running commands. Expected validation categories are:
+- `cargo fmt --check`
+- `cargo clippy -- -D warnings`
+- `cargo test`
 
-- Theia dependency installation using the selected package manager and committed lockfile, for example `yarn install --frozen-lockfile` only if that Theia app commits `yarn.lock` and uses Yarn.
-- Theia application build using the exact script in the Theia app manifest.
-- Electron packaging using the exact script in the Theia app manifest.
-- Packaged Windows application smoke test, clearly separated from compile-only checks.
+### Theia validation checks (`apps/bahamut-desktop/`)
 
-Do not invent Theia commands, do not substitute unrelated root Tauri commands for Theia validation, and do not declare Theia packaging complete until a packaged application is produced and smoke-tested.
+The Theia application commits `yarn.lock` and uses Yarn. Inspect its manifest before running commands. From `apps/bahamut-desktop/`:
 
-### Legacy Tauri prototype build
+- Theia dependency installation: `yarn install --frozen-lockfile`
+- Theia application build: `yarn build`
+- Electron packaging: `yarn package`
+- Packaged Windows application smoke test, clearly separated from compile-only checks (see `.github/workflows/theia-platform-spike.yml`).
 
-In this checkout, the preserved Tauri prototype is at the repository root with its Rust backend under `src-tauri/`. Build it with:
-
-- `npm run tauri build`
-
-If the prototype is later moved to `prototypes/tauri-shell/`, inspect that directory's manifest first and update these instructions in the same change.
+Do not invent Theia commands, do not substitute unrelated Tauri commands for Theia validation, and do not declare Theia packaging complete until a packaged application is produced and smoke-tested.
 
 ## CI debugging rules
 

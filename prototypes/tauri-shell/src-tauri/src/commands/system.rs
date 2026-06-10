@@ -1,7 +1,5 @@
 use serde::Serialize;
-use sysinfo::{System, SystemExt};
-use tauri::State;
-use crate::AppState;
+use sysinfo::System;
 
 #[derive(Serialize)]
 pub struct HardwareInfo {
@@ -29,7 +27,8 @@ pub async fn get_hardware_info() -> Result<HardwareInfo, String> {
     // Query GPU model (on Windows we can retrieve this, or use basic detection/mocking if direct WMI isn't needed for the wizard shell)
     // To make it Windows-first and robust without heavy library setup, we can use dxgi or WMI, or fallback to sysinfo.
     // Let's use sysinfo to see if we can find any graphic cards, or fallback to a basic registry query or mock for the UI.
-    let gpu_model = detect_gpu_on_windows().unwrap_or_else(|| "Generic Graphics Adapter".to_string());
+    let gpu_model =
+        detect_gpu_on_windows().unwrap_or_else(|| "Generic Graphics Adapter".to_string());
 
     Ok(HardwareInfo {
         total_ram_gb,
@@ -44,12 +43,16 @@ fn detect_gpu_on_windows() -> Option<String> {
     {
         use std::process::Command;
         let output = Command::new("wmic")
-            .args(&["path", "win32_VideoController", "get", "name"])
+            .args(["path", "win32_VideoController", "get", "name"])
             .output();
 
         if let Ok(out) = output {
             let text = String::from_utf8_lossy(&out.stdout);
-            let lines: Vec<&str> = text.lines().map(|s| s.trim()).filter(|s| !s.is_empty() && *s != "Name").collect();
+            let lines: Vec<&str> = text
+                .lines()
+                .map(|s| s.trim())
+                .filter(|s| !s.is_empty() && *s != "Name")
+                .collect();
             if !lines.is_empty() {
                 return Some(lines.join(", "));
             }
@@ -97,11 +100,9 @@ pub async fn check_ollama_status() -> Result<OllamaStatus, String> {
                 })
             }
         }
-        Err(_) => {
-            Ok(OllamaStatus {
-                is_running: false,
-                installed_models: Vec::new(),
-            })
-        }
+        Err(_) => Ok(OllamaStatus {
+            is_running: false,
+            installed_models: Vec::new(),
+        }),
     }
 }

@@ -11,9 +11,12 @@ yarn-error.log*
 .eslintcache
 
 # Production builds
-/dist/
-/src-tauri/target/
-/src-tauri/binaries/
+dist/
+**/dist/
+target/
+**/target/
+binaries/
+**/binaries/
 
 # IDEs and Editors
 .vscode/
@@ -48,3 +51,11 @@ $RECYCLE.BIN/
 *.pem
 *.key
 *.cert
+
+# Eclipse Theia generated build artifacts
+**/src-gen/
+/apps/bahamut-desktop/lib/
+/apps/bahamut-desktop/webpack.config.js
+/apps/bahamut-desktop/gen-webpack.config.js
+/apps/bahamut-desktop/gen-webpack.node.config.js
+
