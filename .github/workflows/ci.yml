@@ -2,6 +2,8 @@ name: CI
 
 on:
   push:
+    branches:
+      - main
   pull_request:
 
 permissions:
@@ -11,12 +13,12 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  rust-tauri-shell:
-    name: Rust — tauri-shell backend
+  rust-backend:
+    name: Rust — bahamut-desktop backend
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: prototypes/tauri-shell/src-tauri
+        working-directory: apps/bahamut-desktop/src-tauri
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -36,7 +38,7 @@ jobs:
 
       # tauri-build resolves the frontendDist path at compile time
       - name: Create empty frontend dist
-        run: mkdir -p prototypes/tauri-shell/dist
+        run: mkdir -p apps/bahamut-desktop/dist
         working-directory: .
 
       - name: cargo fmt
@@ -45,40 +47,15 @@ jobs:
       - name: cargo clippy
         run: cargo clippy -- -D warnings
 
-      - name: cargo test
+      - name: cargo test (sandbox adversarial + audit chain + file I/O)
         run: cargo test
 
-  rust-core-service:
-    name: Rust — bahamut-core sidecar
+  frontend:
+    name: Frontend — React/TypeScript
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: services/bahamut-core
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1
-        with:
-          toolchain: stable
-          components: rustfmt, clippy
-
-      - name: cargo fmt
-        run: cargo fmt -- --check
-
-      - name: cargo clippy
-        run: cargo clippy -- -D warnings
-
-      - name: cargo test
-        run: cargo test
-
-  frontend-tauri-shell:
-    name: Frontend — tauri-shell (React/TS)
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: prototypes/tauri-shell
+        working-directory: apps/bahamut-desktop
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -86,9 +63,9 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20.11.1
+          node-version-file: .nvmrc
           cache: npm
-          cache-dependency-path: prototypes/tauri-shell/package-lock.json
+          cache-dependency-path: apps/bahamut-desktop/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -96,7 +73,49 @@ jobs:
       - name: Type check
         run: npx tsc --noEmit
 
-      # No frontend test suite exists yet; --if-present keeps this green
-      # until one is added, then runs it automatically.
-      - name: Tests (if present)
-        run: npm test --if-present
+      - name: Unit tests
+        run: npm test
+
+      - name: Production build
+        run: npm run build
+
+  windows-package:
+    name: Windows — Tauri packaging
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: apps/bahamut-desktop
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: apps/bahamut-desktop/package-lock.json
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable-x86_64-pc-windows-msvc
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Windows-only Rust tests exercise the ADS / reserved-device-name /
+      # 8.3 short-name sandbox protections that Linux cannot cover.
+      - name: cargo test (Windows-specific sandbox protections)
+        run: cargo test
+        working-directory: apps/bahamut-desktop/src-tauri
+
+      - name: Tauri packaging build
+        run: npm run tauri build
+
+      - name: Upload Windows bundle artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: bahamut-windows-bundle
+          path: apps/bahamut-desktop/src-tauri/target/release/bundle/
+          retention-days: 7
