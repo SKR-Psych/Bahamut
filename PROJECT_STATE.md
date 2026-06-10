@@ -83,10 +83,14 @@ is **documented in docs/ but not implemented yet** (Roadmap Phase 4).
 
 ## Current Work
 
-- (none)
+- (none — merge-conflict check complete on 2026-06-10)
 
 ## Recently Completed
 
+- **2026-06-10** (Copilot): processed PR comments requesting merge-conflict
+  resolution; fast-forwarded local branch to `db369eb` (which merged
+  `origin/main`) and verified `origin/main` is already up to date with this
+  branch (no remaining conflicts).
 - **2026-06-10** (Claude Code): hash-chained the audit log (seq + SHA-256
   chain + head pointer), added `verify_audit_chain` command + 8 tests,
   updated docs/security.md. Verify: `cargo test` in tauri-shell crate.
