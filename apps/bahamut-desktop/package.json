@@ -8,7 +8,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "icons": "tauri icon \"../../assets/branding/source/Bahamut Logo no bg no title.png\" && node -e \"['android','ios'].forEach(d=>require('fs').rmSync('src-tauri/icons/'+d,{recursive:true,force:true}))\"",
+    "icons": "tauri icon \"../../assets/branding/source/Bahamut Logo no bg no title.png\" && node -e \"const fs=require('fs');['android','ios'].forEach(d=>fs.rmSync('src-tauri/icons/'+d,{recursive:true,force:true}));fs.copyFileSync('src-tauri/icons/128x128@2x.png','src/assets/bahamut-logo.png')\"",
     "tauri": "tauri"
   },
   "dependencies": {
@@ -19,9 +19,13 @@
     "monaco-editor": "^0.52.2"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",
+    "jsdom": "^26.1.0",
     "typescript": "~5.8.3",
     "vite": "^7.0.4",
     "vitest": "^3.2.4",

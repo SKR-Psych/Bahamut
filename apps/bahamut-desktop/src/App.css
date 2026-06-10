@@ -506,3 +506,443 @@ body {
   gap: 0.75rem;
   align-items: center;
 }
+
+/* ---------------------------------------------------------------------------
+   IDE milestone: brand header, tabs, activity bar, panels, modals
+--------------------------------------------------------------------------- */
+
+/* Glassmorphism disabled (distinct from full solid accessibility mode) */
+.no-glass {
+  --panel-blur: none;
+  --panel-bg: rgba(22, 22, 20, 0.94);
+}
+
+.brand-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.brand-identity {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.brand-mark {
+  display: block;
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.brand-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.launcher-logo {
+  display: block;
+  margin: 0 auto 1rem;
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+}
+
+.placeholder-logo {
+  display: block;
+  margin: 0 auto 0.75rem;
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  opacity: 0.85;
+}
+
+/* Editor tab strip */
+.tab-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.tab-list {
+  display: flex;
+  overflow-x: auto;
+  flex: 1;
+  min-width: 0;
+}
+
+.editor-tab {
+  display: flex;
+  align-items: center;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  background: transparent;
+}
+
+.editor-tab.tab-current {
+  background: #0b0b0a;
+  box-shadow: inset 0 2px 0 var(--color-muted-olive);
+}
+
+.tab-label {
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+  font-family: inherit;
+  padding: 0.45rem 0.35rem 0.45rem 0.75rem;
+  cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.tab-current .tab-label {
+  color: var(--color-text-primary);
+}
+
+.tab-label:focus-visible,
+.tab-close:focus-visible,
+.activity-btn:focus-visible {
+  outline: 2px solid var(--color-muted-olive);
+  outline-offset: -2px;
+}
+
+.tab-dirty-dot {
+  color: var(--color-dusty-rose);
+  font-size: 0.6rem;
+}
+
+.tab-close {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
+  padding: 0.3rem 0.55rem;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.tab-close:hover {
+  color: var(--color-text-primary);
+  background: var(--item-hover);
+}
+
+.tab-close-all {
+  flex-shrink: 0;
+  margin-right: 0.5rem;
+}
+
+/* Activity bar */
+.activity-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.activity-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--color-text-secondary);
+  font-size: 0.78rem;
+  font-family: inherit;
+  padding: 0.5rem 0.6rem;
+  cursor: pointer;
+  border-radius: 8px;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+.activity-btn:hover {
+  background: var(--item-hover);
+}
+
+.activity-btn.activity-active {
+  color: var(--color-text-primary);
+  border-color: var(--color-muted-olive);
+  background: rgba(111, 116, 72, 0.15);
+}
+
+/* File explorer */
+.file-explorer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.explorer-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  padding: 0.4rem 0.5rem 0;
+}
+
+.explorer-inline-form {
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.explorer-inline-form .small-text {
+  display: block;
+  margin: 0 0 0.3rem;
+  word-break: break-all;
+}
+
+.explorer-error {
+  padding: 0 0.5rem;
+  font-size: 0.78rem;
+}
+
+.input-compact {
+  padding: 0.4rem 0.6rem;
+  font-size: 0.82rem;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Search panel */
+.search-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem;
+}
+
+.search-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.search-toggles {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.toggle-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border: 1px solid var(--color-text-muted);
+  border-radius: 6px;
+  padding: 0.2rem 0.45rem;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle-chip:has(input:checked) {
+  border-color: var(--color-muted-olive);
+  color: var(--color-text-primary);
+  background: rgba(111, 116, 72, 0.18);
+}
+
+.toggle-chip input {
+  margin: 0;
+  accent-color: var(--color-muted-olive);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.search-status {
+  margin: 0;
+  padding: 0 0.1rem;
+}
+
+.search-results {
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.search-file-group {
+  margin-bottom: 0.5rem;
+}
+
+.search-file-name {
+  margin: 0 0 0.15rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-dusty-rose);
+  word-break: break-all;
+}
+
+.search-result-row {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+  text-align: left;
+  background: rgba(0, 0, 0, 0.35);
+  border: none;
+  border-left: 2px solid transparent;
+  color: var(--color-text-secondary);
+  font-family: ui-monospace, monospace;
+  font-size: 0.76rem;
+  padding: 0.2rem 0.4rem;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.search-result-row:hover {
+  background: var(--item-hover);
+  border-left-color: var(--color-muted-olive);
+  color: var(--color-text-primary);
+}
+
+.search-line-no {
+  color: var(--color-muted-olive);
+  min-width: 2.5em;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.search-preview {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Settings panel */
+.settings-panel {
+  padding: 0.5rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.panel-heading {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.settings-group {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.settings-group legend {
+  font-size: 0.78rem;
+  color: var(--color-text-secondary);
+  padding: 0 0.3rem;
+}
+
+.settings-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.82rem;
+}
+
+.settings-toggle {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.settings-toggle input {
+  accent-color: var(--color-muted-olive);
+}
+
+.settings-actions {
+  margin-top: 0.25rem;
+}
+
+/* Modals */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.modal-card {
+  background: #161614;
+  border: 1px solid rgba(185, 138, 132, 0.3);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  max-width: 480px;
+  width: calc(100% - 4rem);
+  box-shadow: var(--shadow-premium);
+}
+
+.modal-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+}
+
+.modal-message {
+  margin: 0 0 1rem;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.diff-modal {
+  max-width: min(1200px, calc(100vw - 4rem));
+  width: calc(100vw - 4rem);
+  height: calc(100vh - 6rem);
+  display: flex;
+  flex-direction: column;
+  background: #0b0b0a;
+}
+
+.diff-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  padding-bottom: 0.5rem;
+}
+
+.diff-host {
+  flex: 1;
+  min-height: 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.badge-muted {
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.snapshot-actions {
+  display: flex;
+  gap: 0.3rem;
+}
