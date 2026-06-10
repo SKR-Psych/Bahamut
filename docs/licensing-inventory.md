@@ -1,6 +1,9 @@
 # Bahamut Dependency & Licensing Inventory
 
-This document tracks the license status and redistribution obligations of dependencies used in the Bahamut desktop application.
+This document tracks the license status and redistribution obligations of
+dependencies used in the Bahamut desktop application
+(`apps/bahamut-desktop/`). The Eclipse Theia / Electron rows were removed
+when the Theia spike was retired (ADR-002).
 
 ---
 
@@ -8,21 +11,20 @@ This document tracks the license status and redistribution obligations of depend
 
 | Dependency | License | Type | Notes & Redistribution Obligations |
 | :--- | :--- | :--- | :--- |
-| **Eclipse Theia** | EPL-2.0 | Permissive | Highly customizable. We can rebrand and distribute Bahamut binaries. EPL-2.0 source files that are modified must be made available under EPL-2.0. Secondary licensing options are available for bundling. |
-| **Electron** | MIT | Permissive | Standard desktop shell. Redistributable without restrictions, requires inclusion of copyright notices. |
+| **Tauri v2** (incl. `tauri-build`, `@tauri-apps/api`, `@tauri-apps/cli`) | MIT / Apache-2.0 | Permissive | Redistributable; requires copyright notice inclusion. |
+| **tauri-plugin-dialog** | MIT / Apache-2.0 | Permissive | Native folder/file picker only. |
 
 ---
 
-## 2. Bundled Editor Extensions
+## 2. Editor
 
-For the Eclipse Theia editor integration, Bahamut packages open-source VS Code extensions from the **Open-VSX registry**:
-
-| Extension / Tool | License | Type | Status / Review |
+| Dependency | License | Type | Status / Review |
 | :--- | :--- | :--- | :--- |
-| **Open-VSX Core Client** | EPL-2.0 | Permissive | Fully compatible. |
-| **Monaco Editor (Bundled)** | MIT | Permissive | Built-in web editor module. Permissive. |
+| **Monaco Editor** (`monaco-editor` npm) | MIT | Permissive | Bundled locally by Vite (no CDN). Approved. |
 
-*Warning*: Avoid using or bundling extensions from the official Microsoft Visual Studio Marketplace, as Microsoft’s terms of service restrict their use strictly to official Microsoft Visual Studio family products.
+*Warning*: do not bundle extensions from the Microsoft Visual Studio
+Marketplace; its terms restrict use to Microsoft products. (Bahamut bundles
+no VS Code extensions.)
 
 ---
 
@@ -30,27 +32,33 @@ For the Eclipse Theia editor integration, Bahamut packages open-source VS Code e
 
 | Dependency | License | Type | Status / Review |
 | :--- | :--- | :--- | :--- |
-| **React** | MIT | Permissive | Approved. |
-| **React DOM** | MIT | Permissive | Approved. |
+| **React / React DOM** | MIT | Permissive | Approved. |
 | **TypeScript** | Apache-2.0 | Permissive | Approved. |
+| **Vite / @vitejs/plugin-react** | MIT | Permissive | Build tooling (dev dependency). Approved. |
+| **Vitest** | MIT | Permissive | Test tooling (dev dependency). Approved. |
 
 ---
 
-## 4. Rust Backend Core Crates
+## 4. Rust Backend Crates
 
 | Crate | License | Type | Status / Review |
 | :--- | :--- | :--- | :--- |
-| **tokio** | MIT | Permissive | Approved. |
-| **axum** | MIT | Permissive | Approved. |
-| **rusqlite** | MIT | Permissive | Approved. Includes SQLite bundled. Permissive. |
+| **tauri** | MIT / Apache-2.0 | Permissive | Approved. |
+| **rusqlite** (bundled SQLite) | MIT | Permissive | Approved. SQLite itself is public domain. |
+| **sha2** | MIT / Apache-2.0 | Permissive | Approved. |
 | **sysinfo** | MIT | Permissive | Approved. |
 | **reqwest** | MIT / Apache-2.0 | Permissive | Approved. |
-| **serde** / **serde_json** | MIT / Apache-2.0 | Permissive | Approved. |
+| **serde / serde_json** | MIT / Apache-2.0 | Permissive | Approved. |
+| **tokio** | MIT | Permissive | Approved. |
 
 ---
 
 ## 5. Licensing Flags & Audit
 
-- **Copyleft (GPL / AGPL / SSPL)**: **None** are included in Bahamut’s core codebase or runtime dependencies.
-- **Non-Commercial / Source-Available**: **None**.
-- **Redistribution Strategy**: Since all major components (Theia, Rust, Electron, Monaco) are under permissive open-source licenses (EPL-2.0, MIT, Apache-2.0), Bahamut can be fully repackaged, branded, and distributed as a closed or open-source product without license conflicts.
+- **Copyleft (GPL / AGPL / SSPL)**: **none** in Bahamut's core codebase or
+  runtime dependencies.
+- **Non-Commercial / Source-Available**: **none**.
+- **Redistribution Strategy**: all major components (Tauri, Monaco, React,
+  Rust crates) are under permissive licenses (MIT, Apache-2.0), so Bahamut
+  can be fully repackaged, branded, and distributed without license
+  conflicts.
