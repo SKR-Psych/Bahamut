@@ -1,25 +1,28 @@
 import { useState } from "react";
 import { SetupWizard } from "./components/SetupWizard";
-import { ProjectSelector } from "./components/ProjectSelector";
+import { Workspace } from "./components/Workspace";
 import "./App.css";
 
 function App() {
   const [activeModel, setActiveModel] = useState<string | null>(null);
   const [solidMode, setSolidMode] = useState<boolean>(false);
-
-  const handleSetupComplete = (modelName: string) => {
-    setActiveModel(modelName);
-  };
+  const [showWizard, setShowWizard] = useState<boolean>(false);
 
   return (
     <div className={solidMode ? "accessibility-solid-mode" : ""}>
-      <main className="container">
+      <main className="container container-wide">
         <div className="accessibility-toggle-bar">
-          <button 
-            className="toggle-btn" 
-            onClick={() => setSolidMode(!solidMode)}
-          >
-            {solidMode ? "Enable Glassmorphic Effects" : "Disable Glassmorphism (Solid Fallback)"}
+          <button className="toggle-btn" onClick={() => setShowWizard(!showWizard)}>
+            {showWizard
+              ? "Back to Workspace"
+              : activeModel
+                ? `Model: ${activeModel}`
+                : "AI Model Setup"}
+          </button>
+          <button className="toggle-btn" onClick={() => setSolidMode(!solidMode)}>
+            {solidMode
+              ? "Enable Glassmorphic Effects"
+              : "Disable Glassmorphism (Solid Fallback)"}
           </button>
         </div>
 
@@ -29,10 +32,15 @@ function App() {
           <span className="badge-beta">MVP</span>
         </div>
 
-        {!activeModel ? (
-          <SetupWizard onComplete={handleSetupComplete} />
+        {showWizard ? (
+          <SetupWizard
+            onComplete={(modelName) => {
+              setActiveModel(modelName);
+              setShowWizard(false);
+            }}
+          />
         ) : (
-          <ProjectSelector activeModel={activeModel} />
+          <Workspace />
         )}
       </main>
     </div>

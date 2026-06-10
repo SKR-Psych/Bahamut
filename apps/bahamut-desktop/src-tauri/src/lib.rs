@@ -34,6 +34,11 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::security::set_project_root,
             commands::security::check_file_in_sandbox,
+            commands::files::list_project_files,
+            commands::files::read_project_file,
+            commands::files::save_project_file,
+            commands::files::rollback_file_snapshot,
+            commands::files::list_file_snapshots,
             commands::system::get_hardware_info,
             commands::system::check_ollama_status,
             database::get_audit_logs,

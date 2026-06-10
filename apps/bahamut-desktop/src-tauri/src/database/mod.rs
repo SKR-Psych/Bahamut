@@ -12,6 +12,13 @@ pub const GENESIS_HASH: &str = "bahamut-audit-genesis-v1";
 /// detectable.
 const CHAIN_HEAD_KEY: &str = "audit_chain_head";
 
+/// Settings key for the maximum file size (bytes) the editor will read, save,
+/// or include in the project tree. Stored as a decimal string.
+pub const MAX_FILE_SIZE_KEY: &str = "max_file_size_bytes";
+
+/// Default maximum file size when no setting is stored: 2 MiB.
+pub const DEFAULT_MAX_FILE_SIZE: u64 = 2 * 1024 * 1024;
+
 const AUDIT_TABLE_COLUMNS: &str = "(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     seq INTEGER NOT NULL UNIQUE,
@@ -73,7 +80,107 @@ pub fn init_schema(conn: &Connection) -> Result<(), String> {
         .map_err(|e| format!("Failed to create audit_logs table: {}", e))?;
     }
 
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS snapshots (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            path TEXT NOT NULL,
+            content TEXT NOT NULL,
+            content_hash TEXT NOT NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )",
+        [],
+    )
+    .map_err(|e| format!("Failed to create snapshots table: {}", e))?;
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_snapshots_path ON snapshots (path, id)",
+        [],
+    )
+    .map_err(|e| format!("Failed to index snapshots table: {}", e))?;
+
     Ok(())
+}
+
+/// Reads the configurable maximum file size from settings, falling back to
+/// the default when the key is absent or unparsable.
+pub fn get_max_file_size(conn: &Connection) -> u64 {
+    conn.query_row(
+        "SELECT value FROM settings WHERE key = ?1",
+        params![MAX_FILE_SIZE_KEY],
+        |row| row.get::<_, String>(0),
+    )
+    .optional()
+    .ok()
+    .flatten()
+    .and_then(|v| v.parse::<u64>().ok())
+    .unwrap_or(DEFAULT_MAX_FILE_SIZE)
+}
+
+/// Stores a pre-change snapshot of a file and returns the snapshot id.
+pub fn insert_snapshot(
+    conn: &Connection,
+    path: &str,
+    content: &str,
+    content_hash: &str,
+) -> Result<i64, String> {
+    conn.execute(
+        "INSERT INTO snapshots (path, content, content_hash) VALUES (?1, ?2, ?3)",
+        params![path, content, content_hash],
+    )
+    .map_err(|e| format!("Failed to store snapshot: {}", e))?;
+    Ok(conn.last_insert_rowid())
+}
+
+pub struct SnapshotRecord {
+    pub path: String,
+    pub content: String,
+    pub content_hash: String,
+}
+
+pub fn get_snapshot(conn: &Connection, snapshot_id: i64) -> Result<SnapshotRecord, String> {
+    conn.query_row(
+        "SELECT path, content, content_hash FROM snapshots WHERE id = ?1",
+        params![snapshot_id],
+        |row| {
+            Ok(SnapshotRecord {
+                path: row.get(0)?,
+                content: row.get(1)?,
+                content_hash: row.get(2)?,
+            })
+        },
+    )
+    .optional()
+    .map_err(|e| format!("Failed to read snapshot: {}", e))?
+    .ok_or_else(|| format!("Snapshot {} not found", snapshot_id))
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct SnapshotMeta {
+    pub id: i64,
+    pub created_at: String,
+    pub content_hash: String,
+    pub size_bytes: i64,
+}
+
+/// Newest-first snapshot metadata for one file (content omitted).
+pub fn list_snapshots_for_path(conn: &Connection, path: &str) -> Result<Vec<SnapshotMeta>, String> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, created_at, content_hash, LENGTH(CAST(content AS BLOB))
+             FROM snapshots WHERE path = ?1 ORDER BY id DESC LIMIT 50",
+        )
+        .map_err(|e| format!("Failed to read snapshots: {}", e))?;
+    let rows = stmt
+        .query_map(params![path], |row| {
+            Ok(SnapshotMeta {
+                id: row.get(0)?,
+                created_at: row.get(1)?,
+                content_hash: row.get(2)?,
+                size_bytes: row.get(3)?,
+            })
+        })
+        .map_err(|e| format!("Failed to read snapshots: {}", e))?;
+    rows.collect::<Result<Vec<_>, _>>()
+        .map_err(|e| format!("Failed to read snapshots: {}", e))
 }
 
 fn column_exists(conn: &Connection, table: &str, column: &str) -> Result<bool, String> {
