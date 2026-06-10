@@ -2,6 +2,25 @@
 
 This directory contains the original logo assets and variants for the Bahamut desktop environment.
 
+## Application & Installer Icons (generated)
+
+The application icon set under `apps/bahamut-desktop/src-tauri/icons/`
+(Windows `.ico`, macOS `.icns`, PNG sizes, and Windows Store logos) is
+**generated** from the master asset
+`assets/branding/source/Bahamut Logo no bg no title.png` (1536×1536,
+transparent). Do not edit the generated files by hand. To regenerate after
+changing the master asset, run from `apps/bahamut-desktop/`:
+
+```bash
+npm run icons
+```
+
+This wraps `tauri icon` (preserving transparency, aspect ratio, and colours)
+and removes the Android/iOS variants, which the desktop-only app does not
+use. The icons are wired up in `src-tauri/tauri.conf.json` and apply to the
+executable, window/taskbar, Start menu shortcut, and the NSIS and MSI
+installers.
+
 ## Source Assets (`/assets/branding/source/`)
 
 ### 1. Transparent Background, Icon Only

@@ -27,7 +27,9 @@ Bahamut is built on **Tauri v2 + React + TypeScript + Monaco Editor**
   React + TypeScript frontend (`src/`), Rust backend (`src-tauri/`),
   npm-managed with committed `package-lock.json` and `src-tauri/Cargo.lock`.
 - **`docs/`** — product vision, architecture, security model, ADRs, licensing.
-- **`assets/`** — branding source assets.
+- **`assets/`** — branding source assets. The application/installer icon set
+  is generated from `assets/branding/source/Bahamut Logo no bg no title.png`
+  via `npm run icons` (see `assets/branding/README.md`).
 - **`.github/workflows/`** — CI (frontend type-check/tests/build, Rust
   fmt/clippy/test, Windows Tauri packaging).
 

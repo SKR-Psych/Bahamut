@@ -8,6 +8,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "icons": "tauri icon \"../../assets/branding/source/Bahamut Logo no bg no title.png\" && node -e \"['android','ios'].forEach(d=>require('fs').rmSync('src-tauri/icons/'+d,{recursive:true,force:true}))\"",
     "tauri": "tauri"
   },
   "dependencies": {

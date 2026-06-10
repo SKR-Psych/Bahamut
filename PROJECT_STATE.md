@@ -90,6 +90,12 @@ No fs/shell/opener plugins.
 
 ## Recently Completed
 
+- **2026-06-10** (Claude Code): application + installer branding. Tauri icon
+  set (ico/icns/PNGs/Store logos) generated from
+  `assets/branding/source/Bahamut Logo no bg no title.png` via the
+  repeatable `npm run icons` script; tauri.conf.json gained publisher,
+  short/longDescription, and the NSIS installerIcon. Regenerate icons only
+  via `npm run icons` — never hand-edit `src-tauri/icons/`.
 - **2026-06-10** (Claude Code): platform consolidation. ADR-002 Accepted
   (Tauri), ADR-001 superseded; Theia spike + axum sidecar retired (history
   in tag `archive/pre-platform-consolidation`); Tauri app moved
