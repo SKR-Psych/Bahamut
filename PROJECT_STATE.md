@@ -42,9 +42,14 @@ Canonicalizes the project root and the target; for non-existent targets,
 canonicalizes the nearest existing parent and rejects `..` components in the
 remaining (non-existent) suffix. Accepts only paths whose canonical form is
 inside the canonical root. Symlinks are resolved by canonicalization, so a
-link pointing outside the root is rejected. **TOCTOU note**: validation is
-path-based; the returned path must be used immediately and never cached —
-re-validate at open time when file I/O commands are added (see Invariants).
+link pointing outside the root is rejected. On Windows it also rejects NTFS
+alternate-data-stream syntax (`:` in any component) and reserved DOS device
+names (`NUL`, `CON`, `COM1`…, with or without extension) — both bypassed the
+canonicalization check for non-existent targets (fixed 2026-06-10; the
+device-name case was a real fail-open found by adversarial tests).
+**TOCTOU note**: validation is path-based; the returned path must be used
+immediately and never cached — re-validate at open time when file I/O
+commands are added (see Invariants).
 
 ### Audit log (`database/mod.rs`)
 
