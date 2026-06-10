@@ -2,7 +2,7 @@
 
 Bahamut is a local-first, open-model agentic development environment designed for secure and transparent AI-assisted software development. It targets developers and non-technical users who want the power of modern AI coding agents without sacrificing data ownership or execution safety.
 
-Bahamut integrates two core operational modes into a single, cohesive desktop experience.
+Bahamut integrates two core operational modes into a single, cohesive desktop experience, built on **Tauri v2 + React + TypeScript + Monaco Editor** with **Rust as the trusted security and execution boundary** (ADR-002). Bahamut is local-first, model-neutral, permission-driven, and auditable; all sensitive filesystem and command operations pass through narrow Rust commands.
 
 ---
 
