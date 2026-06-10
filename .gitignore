@@ -1,20 +1,15 @@
-# Rust / Cargo
-/src-tauri/target/
-/src-tauri/Cargo.lock
+# Rust / Cargo build outputs
+target/
+**/target/
 
 # Node.js
 node_modules/
 npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
 .eslintcache
 
-# Production builds
+# Production builds and packaged binaries
 dist/
 **/dist/
-target/
-**/target/
 binaries/
 **/binaries/
 
@@ -32,8 +27,6 @@ binaries/
 *.db-journal
 *.sqlite
 *.sqlite3
-/src-tauri/bahamut.db
-/src-tauri/bahamut.db-journal
 
 # Operating System
 Thumbs.db
@@ -51,11 +44,3 @@ $RECYCLE.BIN/
 *.pem
 *.key
 *.cert
-
-# Eclipse Theia generated build artifacts
-**/src-gen/
-/apps/bahamut-desktop/lib/
-/apps/bahamut-desktop/webpack.config.js
-/apps/bahamut-desktop/gen-webpack.config.js
-/apps/bahamut-desktop/gen-webpack.node.config.js
-
