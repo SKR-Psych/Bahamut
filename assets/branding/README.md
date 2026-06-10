@@ -15,9 +15,11 @@ changing the master asset, run from `apps/bahamut-desktop/`:
 npm run icons
 ```
 
-This wraps `tauri icon` (preserving transparency, aspect ratio, and colours)
-and removes the Android/iOS variants, which the desktop-only app does not
-use. The icons are wired up in `src-tauri/tauri.conf.json` and apply to the
+This wraps `tauri icon` (preserving transparency, aspect ratio, and colours),
+removes the Android/iOS variants, which the desktop-only app does not use,
+and refreshes the in-app UI asset `src/assets/bahamut-logo.png` (a 256px
+derivative shown in the application header and welcome/empty states). The
+icons are wired up in `src-tauri/tauri.conf.json` and apply to the
 executable, window/taskbar, Start menu shortcut, and the NSIS and MSI
 installers.
 

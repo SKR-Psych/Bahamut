@@ -36,6 +36,7 @@ no VS Code extensions.)
 | **TypeScript** | Apache-2.0 | Permissive | Approved. |
 | **Vite / @vitejs/plugin-react** | MIT | Permissive | Build tooling (dev dependency). Approved. |
 | **Vitest** | MIT | Permissive | Test tooling (dev dependency). Approved. |
+| **jsdom / @testing-library (dom, react, jest-dom)** | MIT | Permissive | Test tooling (dev dependencies). Approved. |
 
 ---
 
@@ -45,6 +46,7 @@ no VS Code extensions.)
 | :--- | :--- | :--- | :--- |
 | **tauri** | MIT / Apache-2.0 | Permissive | Approved. |
 | **rusqlite** (bundled SQLite) | MIT | Permissive | Approved. SQLite itself is public domain. |
+| **regex** | MIT / Apache-2.0 | Permissive | Approved. Powers project-wide search. |
 | **sha2** | MIT / Apache-2.0 | Permissive | Approved. |
 | **sysinfo** | MIT | Permissive | Approved. |
 | **reqwest** | MIT / Apache-2.0 | Permissive | Approved. |

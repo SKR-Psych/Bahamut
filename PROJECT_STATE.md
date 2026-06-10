@@ -33,6 +33,13 @@ execution boundary.
 | `save_project_file(path, content, expected_hash)` | `commands/files.rs` | Revalidates at point of use; refuses stale writes (on-disk hash must equal `expected_hash`); pre-change snapshot to SQLite; atomic temp-file+rename write; audited. |
 | `rollback_file_snapshot(snapshot_id)` | `commands/files.rs` | Restores a snapshot (revalidated against the CURRENT root); snapshots current content first (undo); atomic write; audited. |
 | `list_file_snapshots(path)` | `commands/files.rs` | Newest-first snapshot metadata for one validated path. |
+| `create_project_file(path)` / `create_project_folder(path)` | `commands/fileops.rs` | Validated create inside the sandbox; refuses overwrite (atomic `create_new`); audited (success/denied/failure). |
+| `rename_project_path(from, to)` | `commands/fileops.rs` | Both endpoints validated; destination must not exist; refuses renaming the root; audited. |
+| `delete_project_path(path)` | `commands/fileops.rs` | Recoverable delete: moves to `<app-data>/trash/<stamp>-<name>` and snapshots text files to SQLite (`pre-delete`) first; refuses deleting the root; audited. |
+| `search_project(options)` | `commands/search.rs` | Bounded project-wide search (tree exclusions, configurable size cap, ≤20k files, ≤500 results, ≤30s); case/word/regex modes; async on a blocking thread. |
+| `cancel_project_search()` | `commands/search.rs` | Advances the generation counter; any in-flight search aborts. |
+| `get_app_settings` / `update_app_settings` / `reset_app_settings` | `commands/settings.rs` | Validated settings (size limits 1 KiB–50 MiB, theme whitelist, UI prefs) in the settings table; updates audited; no credentials ever stored here. |
+| `get_snapshot_content(snapshot_id)` | `commands/files.rs` | Snapshot content for the diff view; stored path revalidated against the CURRENT root. |
 | `get_hardware_info()` | `commands/system.rs` | RAM/CPU via `sysinfo`, GPU via `wmic`; VRAM is mocked (8 GB). |
 | `check_ollama_status()` | `commands/system.rs` | GET `http://localhost:11434/api/tags` (2 s timeout). |
 | `get_audit_logs()` | `database/mod.rs` | Last 100 audit rows (incl. seq + entry_hash), newest first. |
@@ -90,6 +97,15 @@ No fs/shell/opener plugins.
 
 ## Recently Completed
 
+- **2026-06-10** (Claude Code): IDE usability milestone. Multi-tab Monaco
+  editing (per-tab models/undo, dirty markers, close confirmations, keyboard
+  nav), secure create/rename/delete (`commands/fileops.rs`, recoverable
+  trash + pre-delete snapshots), Rust project-wide search with limits and
+  cancellation (`commands/search.rs`), validated settings commands
+  (`commands/settings.rs`), snapshot UX with operation labels + Monaco diff
+  modal, in-app Bahamut logo (header/welcome/empty states, derived 256px
+  asset). Frontend test infra: vitest + jsdom + testing-library (39 tests);
+  Rust suite at 52 tests.
 - **2026-06-10** (Claude Code): application + installer branding. Tauri icon
   set (ico/icns/PNGs/Store logos) generated from
   `assets/branding/source/Bahamut Logo no bg no title.png` via the
@@ -106,15 +122,16 @@ No fs/shell/opener plugins.
 
 ## Known Issues / Next Up (prioritised)
 
-1. Surface the configurable file-size limit and snapshot management in a
-   settings UI (backend setting `max_file_size_bytes` already exists).
-2. Child-process sandboxing / environment scrubbing for approved commands
+1. Trash management: deletes accumulate in `<app-data>/trash` with no purge
+   or in-app restore UI yet (recovery is manual or via pre-delete
+   snapshots). Cross-volume deletes are refused (trash move uses rename).
+2. Project-wide replace is intentionally not implemented (search-only this
+   milestone); revisit with the Phase 4 diff/approval flow.
+3. Child-process sandboxing / environment scrubbing for approved commands
    (Roadmap Phase 5).
-3. Prompt-injection flagging in the approval UI (highlight suspicious
+4. Prompt-injection flagging in the approval UI (highlight suspicious
    instructions inside file/diff content before the user approves).
-4. VRAM detection is mocked in `get_hardware_info`; model download in
+5. VRAM detection is mocked in `get_hardware_info`; model download in
    `SetupWizard.tsx` is simulated, not a real Ollama pull (Phase 4).
-5. Multi-tab editing, global search, and diff viewer (Phase 4) on top of the
-   Phase 2 save path.
 6. Packaged-app smoke test in CI (currently CI verifies build/packaging,
    not runtime behaviour).
