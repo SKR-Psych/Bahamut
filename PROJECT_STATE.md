@@ -34,7 +34,8 @@ the latter a draft recommending **retaining the Tauri shell**):
 | `check_file_in_sandbox(path)` | `commands/security.rs` | Runs `validate_path(root, path)`; Ok(true) if inside the sandbox, Err otherwise. |
 | `get_hardware_info()` | `commands/system.rs` | RAM/CPU via `sysinfo`, GPU via `wmic` on Windows; VRAM is mocked (8 GB). |
 | `check_ollama_status()` | `commands/system.rs` | GET `http://localhost:11434/api/tags` (2 s timeout); returns running flag + model names. |
-| `get_audit_logs()` | `database/mod.rs` | Returns last 100 audit rows (JSON) ordered newest first. |
+| `get_audit_logs()` | `database/mod.rs` | Returns last 100 audit rows (JSON, incl. seq + entry_hash) newest first. |
+| `verify_audit_chain()` | `database/mod.rs` | Walks the audit hash chain; reports valid/first-broken-row for the UI. |
 
 ### Path validation (`validate_path` in `commands/security.rs`)
 
@@ -54,9 +55,12 @@ commands are added (see Invariants).
 ### Audit log (`database/mod.rs`)
 
 SQLite at `%APPDATA%/Bahamut/bahamut.db` (`audit_logs` + `settings` tables).
-`log_action()` inserts `(action_type, details, status, error)` rows with a
-SQLite `CURRENT_TIMESTAMP`. Rows currently carry **no tamper evidence**
-(hash chaining is planned — see Known Issues).
+Tamper-evident via hash chaining: each row stores `seq` (monotonic from 1),
+`prev_hash`, and `entry_hash = SHA-256(seq || prev_hash || canonical JSON
+payload)`, chained from a fixed genesis constant; the chain head is mirrored
+in `settings` so tail deletion is detectable. `verify_chain()` /
+`verify_audit_chain` report the first broken link. Legacy (pre-chain) tables
+are migrated in place. This is tamper *evidence*, not prevention.
 
 ### Diffs
 
@@ -79,23 +83,34 @@ is **documented in docs/ but not implemented yet** (Roadmap Phase 4).
 
 ## Current Work
 
-- **Claude Code** (2026-06-10): security hardening pass — CI scaffolding,
-  adversarial sandbox tests, hash-chained audit log (Steps 3–5 of the
-  hardening plan).
+- (none)
 
 ## Recently Completed
 
-- (none yet — add dated entries here, newest first, max 3 lines each)
+- **2026-06-10** (Claude Code): hash-chained the audit log (seq + SHA-256
+  chain + head pointer), added `verify_audit_chain` command + 8 tests,
+  updated docs/security.md. Verify: `cargo test` in tauri-shell crate.
+- **2026-06-10** (Claude Code): adversarial sandbox tests (13) for
+  `validate_path`; fixed real Windows bypasses (ADS syntax, reserved device
+  names like `project\NUL`); documented TOCTOU limits. Verify: `cargo test`.
+- **2026-06-10** (Claude Code): added `.github/workflows/ci.yml` (Linux:
+  fmt/clippy/test for both Rust crates, npm ci + tsc for the frontend);
+  fixed tauri-shell crate compile (sysinfo 0.30 `SystemExt` removal).
 
 ## Known Issues / Next Up (prioritised)
 
-1. Audit log has no tamper evidence — add hash chaining + verification
-   (in progress, see Current Work).
-2. Decide ADR-002 (Theia rejection is still Draft); consolidate on one shell
+1. Snapshot-based rollback for applied file changes (undo an approved edit
+   from a pre-change snapshot).
+2. Child-process sandboxing / environment scrubbing for approved commands
+   (strip secrets from env, constrain working dir and privileges).
+3. Tauri capabilities lockdown: `tauri.conf.json` still has default
+   identifier (`com.sami.tauri-app`) and `csp: null`; capabilities file is
+   permissive default.
+4. Prompt-injection flagging in the approval UI (highlight suspicious
+   instructions inside file/diff content before the user approves).
+5. Decide ADR-002 (Theia rejection is still Draft); consolidate on one shell
    and retire the unused one.
-3. File read/write Tauri commands (Roadmap Phase 2) — must use the sandbox
+6. File read/write Tauri commands (Roadmap Phase 2) — must use the sandbox
    guard and re-validate at open time.
-4. `tauri.conf.json` still has default identifiers (`com.sami.tauri-app`) and
-   `csp: null`; needs hardening before any release.
-5. VRAM detection is mocked in `get_hardware_info`.
-6. Model download in `SetupWizard.tsx` is simulated, not a real Ollama pull.
+7. VRAM detection is mocked in `get_hardware_info`; model download in
+   `SetupWizard.tsx` is simulated, not a real Ollama pull.
