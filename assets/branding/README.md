@@ -2,14 +2,30 @@
 
 This directory contains the original logo assets and variants for the Bahamut desktop environment.
 
-## Application & Installer Icons (generated)
+## Asset Tiers: source → derived master → generated icons
 
-The application icon set under `apps/bahamut-desktop/src-tauri/icons/`
-(Windows `.ico`, macOS `.icns`, PNG sizes, and Windows Store logos) is
-**generated** from the master asset
-`assets/branding/source/Bahamut Logo no bg no title.png` (1536×1536,
-transparent). Do not edit the generated files by hand. To regenerate after
-changing the master asset, run from `apps/bahamut-desktop/`:
+There are three tiers of icon-related assets. Only the first is hand-made.
+
+1. **Source artwork** — `assets/branding/source/Bahamut Logo no bg no title.png`
+   (1536×1536, transparent). The original design export, kept untouched. The
+   visible emblem occupies only ~60% of this canvas (bbox 920×948 at
+   (308,213)), which is correct for artwork but makes app icons look
+   undersized.
+2. **Derived app-icon master** — `assets/branding/derived/Bahamut App Icon
+   Master.png` (1116×1116, transparent). A *crop + pad* of the source — no
+   scaling, recolouring, or redrawing: the emblem's alpha bounding box
+   (threshold ≥16) is cut out pixel-for-pixel and centred on a square canvas
+   sized so the emblem fills **~85%** (even margins: 98px left/right,
+   84px top/bottom — the safety margin against Windows icon masks). This is
+   the input to icon generation. If the source artwork changes, recreate it
+   the same way (measure alpha bbox, pad to ~85% fill).
+3. **Generated Tauri icons** — `apps/bahamut-desktop/src-tauri/icons/`
+   (Windows `.ico` with 16/24/32/48/64/256 frames, macOS `.icns`, PNG sizes,
+   Windows Store logos). Generated from the derived master; never edit by
+   hand. Measured emblem fill in the shipped icons: 85–92% across all `.ico`
+   frame sizes — standard Windows app-icon scale.
+
+To regenerate after changing the master, run from `apps/bahamut-desktop/`:
 
 ```bash
 npm run icons

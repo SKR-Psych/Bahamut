@@ -97,6 +97,12 @@ No fs/shell/opener plugins.
 
 ## Recently Completed
 
+- **2026-06-11** (Claude Code): fixed undersized app icons. New derived
+  master `assets/branding/derived/Bahamut App Icon Master.png` (crop+pad of
+  the untouched source; emblem fill ~60% → ~85%); `npm run icons` now
+  generates from it. Measured fill 85–92% across all .ico frames
+  (16/24/32/48/64/256). Source artwork unchanged; asset tiers documented in
+  assets/branding/README.md.
 - **2026-06-10** (Claude Code): IDE usability milestone. Multi-tab Monaco
   editing (per-tab models/undo, dirty markers, close confirmations, keyboard
   nav), secure create/rename/delete (`commands/fileops.rs`, recoverable
