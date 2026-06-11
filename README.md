@@ -62,3 +62,8 @@ cargo fmt --check
 cargo clippy -- -D warnings
 cargo test         # includes adversarial sandbox + audit-chain tests
 ```
+
+## Info
+
+- Bahamut is named after a dragon.
+- No dragons were consulted during the development of this project.
