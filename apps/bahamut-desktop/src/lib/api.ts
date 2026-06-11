@@ -93,3 +93,26 @@ export function updateAppSettings(settings: AppSettings): Promise<AppSettings> {
 export function resetAppSettings(): Promise<AppSettings> {
   return invoke("reset_app_settings");
 }
+
+export function getHardwareProfile(): Promise<import("./types").HardwareProfile> { return invoke("get_hardware_profile"); }
+export function getModelCatalogue(): Promise<import("./types").ModelCatalogueEntry[]> { return invoke("get_model_catalogue"); }
+export function getModelRecommendations(profile?: import("./types").HardwareProfile): Promise<import("./types").ModelRecommendation[]> { return invoke("get_model_recommendations", { profile: profile ?? null }); }
+export function getProviderStatus(): Promise<import("./types").ProviderStatus> { return invoke("get_provider_status"); }
+export function reconnectProvider(): Promise<import("./types").ProviderStatus> { return invoke("reconnect_provider"); }
+export function listInstalledModels(): Promise<import("./types").InstalledModel[]> { return invoke("list_installed_models"); }
+export function pullModel(model: string): Promise<void> { return invoke("pull_model", { model }); }
+export function cancelModelPull(): Promise<void> { return invoke("cancel_model_pull"); }
+export function deleteModel(model: string): Promise<void> { return invoke("delete_model", { model }); }
+export function selectActiveModel(model: string | null): Promise<AppSettings> { return invoke("select_active_model", { model }); }
+export function testPrompt(model: string): Promise<string> { return invoke("test_prompt", { model }); }
+export function startChat(request: import("./types").ChatRequest): Promise<string> { return invoke("start_chat", { request }); }
+export function cancelChat(): Promise<void> { return invoke("cancel_chat"); }
+export function assembleChatContext(attachments: import("./types").AttachmentRequest[]): Promise<import("./types").ContextAssembly> { return invoke("assemble_chat_context", { attachments }); }
+export function approveSecretContext(categories: string[], attachmentCount: number): Promise<void> { return invoke("approve_secret_context", { categories, attachmentCount }); }
+export function createConversation(title: string, model?: string | null): Promise<import("./types").Conversation> { return invoke("create_conversation", { title, model: model ?? null }); }
+export function listConversations(): Promise<import("./types").Conversation[]> { return invoke("list_conversations"); }
+export function readConversation(id: number): Promise<import("./types").ConversationDetail> { return invoke("read_conversation", { id }); }
+export function renameConversation(id: number, title: string): Promise<import("./types").Conversation> { return invoke("rename_conversation", { id, title }); }
+export function deleteConversation(id: number): Promise<void> { return invoke("delete_conversation", { id }); }
+export function clearConversationHistory(): Promise<void> { return invoke("clear_conversation_history"); }
+export function inspectStoredChatData(): Promise<import("./types").StoredDataSummary> { return invoke("inspect_stored_chat_data"); }

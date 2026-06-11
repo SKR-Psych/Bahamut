@@ -102,6 +102,7 @@ export interface AppSettings {
   max_file_size_bytes: number;
   max_search_file_size_bytes: number;
   ui_prefs: UiPrefs;
+  ai: AiSettings;
 }
 
 export interface AuditLogEntry {
@@ -121,3 +122,31 @@ export interface ChainVerification {
   first_broken_seq: number | null;
   detail: string | null;
 }
+
+export interface AiSettings {
+  local_ai_enabled: boolean;
+  provider: "ollama";
+  active_model: string | null;
+  context_limit: number;
+  per_file_attachment_limit: number;
+  history_persistence: boolean;
+  ollama_endpoint: string;
+  request_timeout_ms: number;
+  temperature: number;
+  max_output_tokens: number;
+}
+export interface HardwareProfile { total_ram_gb: number; cpu_cores: number; gpu_model: string | null; vram_gb: number | null; tier: string; detection_notes: string[]; }
+export interface ModelCatalogueEntry { id: string; provider: string; display_name: string; family: string; parameters_b: number; quantization: string; context_window: number; download_size_gb: number; min_ram_gb: number; recommended_ram_gb: number; min_vram_gb: number | null; recommended_vram_gb: number | null; license: string; license_url: string; safety_notes: string; tags: string[]; }
+export interface ModelRecommendation { model: ModelCatalogueEntry; fit: string; reasons: string[]; warnings: string[]; }
+export interface ProviderStatus { provider: string; reachable: boolean; version: string | null; message: string; }
+export interface InstalledModel { id: string; display_name: string; size_bytes: number | null; modified_at: string | null; digest: string | null; details: unknown; }
+export interface ChatMessage { role: "system" | "user" | "assistant"; content: string; }
+export interface ChatRequest { conversation_id?: number | null; model: string; messages: ChatMessage[]; temperature?: number; max_output_tokens?: number; }
+export interface Conversation { id: number; title: string; model: string | null; created_at: string; updated_at: string; }
+export interface StoredMessage { id: number; conversation_id: number; role: string; content: string; model: string | null; attachment_metadata: string | null; status: string; error: string | null; created_at: string; }
+export interface ConversationDetail { conversation: Conversation; messages: StoredMessage[]; }
+export interface AttachmentRequest { kind: "open_file" | "selected_file" | "selected_text" | "search_result" | "manual_text"; path?: string | null; label?: string | null; text?: string | null; start_line?: number | null; end_line?: number | null; }
+export interface SecretFinding { category: string; label: string; line: number | null; column: number | null; }
+export interface Attachment { kind: string; path: string | null; label: string; content: string; original_bytes: number; included_bytes: number; truncated: boolean; secret_findings: SecretFinding[]; }
+export interface ContextAssembly { attachments: Attachment[]; total_bytes: number; total_limit: number; truncated: boolean; system_boundary: string; }
+export interface StoredDataSummary { conversations: number; messages: number; approximate_bytes: number; persistence_enabled: boolean; }

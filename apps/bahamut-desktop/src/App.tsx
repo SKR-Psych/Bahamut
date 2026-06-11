@@ -15,6 +15,18 @@ const DEFAULT_SETTINGS: AppSettings = {
     confirm_tab_close: true,
     theme: "dark",
   },
+  ai: {
+    local_ai_enabled: false,
+    provider: "ollama",
+    active_model: null,
+    context_limit: 256 * 1024,
+    per_file_attachment_limit: 64 * 1024,
+    history_persistence: true,
+    ollama_endpoint: "http://127.0.0.1:11434",
+    request_timeout_ms: 120_000,
+    temperature: 0.2,
+    max_output_tokens: 2048,
+  },
 };
 
 function App() {
@@ -25,7 +37,7 @@ function App() {
   // Persisted settings drive the visual modes from startup.
   useEffect(() => {
     getAppSettings()
-      .then(setSettings)
+      .then((loaded) => { setSettings(loaded); setActiveModel(loaded.ai.active_model); setShowWizard(!loaded.ai.active_model && loaded.ai.local_ai_enabled); })
       .catch((e) => console.warn("Could not load settings, using defaults:", e));
   }, []);
 

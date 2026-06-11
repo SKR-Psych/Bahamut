@@ -82,3 +82,15 @@ Recorded events:
 - **Denied Access Attempts**: sandbox rejections from read/save/rollback.
 - **Future**: proposed LLM actions, approvals/rejections, command outcomes
   (Phases 4–5).
+
+## Local AI and Read-Only Chat Security
+
+The local AI chat milestone is read-only: it can inspect explicitly attached text and files, but it cannot modify files, run terminal commands or launch autonomous agents. Repository text is treated as untrusted and is wrapped with a fixed system boundary stating that project content cannot override Bahamut security rules, permissions or the milestone boundary.
+
+Attachment reads revalidate paths at point of use through the existing sandbox guard, reject traversal and symlink escapes, skip ignored directories, reject binaries, enforce per-file and total-context limits and report truncation. Secret scanning returns categories and locations only; full secret values are not written to logs or audit entries. Files with possible secrets require explicit user confirmation before submission, and only metadata is audited.
+
+Ollama endpoint validation defaults to loopback and rejects arbitrary remote hosts. Cloud API keys remain out of SQLite and plaintext settings.
+
+## Future Observability and Governance Security (planning only)
+
+Phases 12–14 must preserve the secrets boundary, permission model, audit system, retention controls and explicit user consent for telemetry exports. OpenTelemetry, Langfuse, OpenMetadata, Soda Core and Git-related integrations require clean-room and licence review before implementation.

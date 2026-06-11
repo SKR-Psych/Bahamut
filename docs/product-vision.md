@@ -44,3 +44,9 @@ To ensure consistency, both modes are powered by the same underlying local deskt
 3. **Execution & Command Engine**: Discrete process spawning, cancellation tokens, and stdout/stderr stream listeners.
 4. **Security & Permission Guard**: Sandboxed path validation rejecting access outside the project root directory.
 5. **Unified SQLite Database**: Audit logger (tracking all operations, actions, and user approvals), chat transcripts, and settings.
+
+## Future Product Vision: Phases 12–14 (not implemented)
+
+Bahamut's long-term direction includes native Git/software-delivery workflows, data intelligence/governance and data/AI/agent observability. These are planning topics only today. Their shared platform foundation will include a connector SDK, metadata model, graph abstraction, scheduling, event/telemetry bus, policy engine, secrets boundary, permission model, audit system, extension API, agent tool registry, deployment modes, retention controls and interoperability formats.
+
+Clean-room and licence-review principles apply to Git, OpenMetadata, Soda Core, OpenTelemetry and Langfuse-related work. Bahamut must not copy incompatible implementations or enable telemetry by default.

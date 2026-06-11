@@ -39,6 +39,7 @@ import { SnapshotsPanel } from "./SnapshotsPanel";
 import { AuditPanel } from "./AuditPanel";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { DiffModal } from "./DiffModal";
+import { LocalAiPanel } from "./LocalAiPanel";
 
 interface FileBuffer {
   path: string;
@@ -51,7 +52,7 @@ interface FileBuffer {
   version: number;
 }
 
-type Activity = "files" | "search" | "settings";
+type Activity = "files" | "search" | "settings" | "ai";
 type BottomTab = "snapshots" | "audit";
 
 type Confirmation =
@@ -410,6 +411,7 @@ export function Workspace({ settings, onSettingsChanged }: WorkspaceProps) {
               ["files", "Files"],
               ["search", "Search"],
               ["settings", "Settings"],
+              ["ai", "Local AI"],
             ] as [Activity, string][]
           ).map(([key, label]) => (
             <button
@@ -449,6 +451,9 @@ export function Workspace({ settings, onSettingsChanged }: WorkspaceProps) {
           )}
           {activity === "settings" && (
             <SettingsPanel settings={settings} onSettingsChanged={onSettingsChanged} />
+          )}
+          {activity === "ai" && (
+            <LocalAiPanel settings={settings} onSettingsChanged={onSettingsChanged} openFiles={Object.values(buffers).map((b) => ({ path: b.path, name: b.name, content: b.content }))} />
           )}
         </aside>
 

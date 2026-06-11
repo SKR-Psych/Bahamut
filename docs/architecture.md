@@ -93,3 +93,15 @@ graph TD
 - **Snapshots & Rollback** (implemented): every save stores the previous
   content in SQLite first; any snapshot can be restored atomically, and the
   restore itself snapshots the current content so it can be undone.
+
+## Local AI Chat Architecture (Phase 6 milestone)
+
+The local AI milestone keeps the boundary at **inspect → attach → ask → answer**. Rust owns provider settings, loopback endpoint validation, model catalogue metadata, hardware recommendations, explicit attachment assembly, secret detection, cancellation generations and SQLite conversation tables. React uses provider-neutral types and receives only explicit user-selected context.
+
+Ollama is currently the only provider implementation. The provider abstraction is intentionally narrow: status, installed models, pull, delete, active-model selection, test prompt and chat. Remote arbitrary endpoints are rejected; only loopback Ollama endpoints are allowed until a separate security decision is accepted.
+
+Normal chat content is stored in conversation tables when history persistence is enabled, not in the tamper-evident security audit chain. Audit entries for model/provider and secret-approval actions contain metadata only.
+
+## Future Platform Foundation (planning only)
+
+Future Phases 12–14 will share a connector SDK, metadata model, graph abstraction, scheduling, event and telemetry bus, policy engine, secrets boundary, permission model, audit system, extension API, agent tool registry, deployment modes, retention controls and interoperability formats. Git, OpenMetadata, Soda Core, OpenTelemetry and Langfuse integrations require clean-room implementation and licence review.

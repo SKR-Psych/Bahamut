@@ -93,10 +93,12 @@ No fs/shell/opener plugins.
 
 ## Current Work
 
-- (none — platform consolidation completed 2026-06-10)
+- **2026-06-11** (Codex): continuing `feature/local-ai-chat`. Local work was reconciled with `origin/main` and the branch now compiles locally. Remaining before merge readiness: add broader mock Ollama HTTP tests, add Local AI frontend event-listener/streaming tests, perform real Ollama/manual UI checks where available, and decide whether the preserved Claude worktree branch contains any further unique ideas worth porting.
 
 ## Recently Completed
 
+- **2026-06-11** (Codex): merged `origin/main` into `feature/local-ai-chat`, resolved duplicate local-AI module layouts, registered the AI command surface, replaced buffered Ollama pull/chat reads with incremental `bytes_stream()` JSONL processing, and added focused stream-buffer tests. Verified locally: `cargo check`, `cargo fmt --check`, `cargo clippy -- -D warnings`, `cargo test` (63 tests), `npm ci`, `npx tsc --noEmit`, `npm test -- --run` (39 tests), `npm run build`, `npm run tauri build`, and `git diff --check`.
+- **2026-06-11** (Codex): integrated a local AI/read-only chat slice: provider-neutral catalogue and recommendations, loopback-only Ollama provider commands, cancellation generation state, explicit attachment assembly with sandbox revalidation and secret detection, SQLite conversation tables/CRUD, AI settings validation, a modular Local AI React panel, and future Phase 12–14 roadmap/vision/security docs. Normal chat content is not written to the audit chain; secret approvals audit metadata only.
 - **2026-06-11** (Claude Code): fixed undersized app icons. New derived
   master `assets/branding/derived/Bahamut App Icon Master.png` (crop+pad of
   the untouched source; emblem fill ~60% → ~85%); `npm run icons` now
@@ -137,7 +139,6 @@ No fs/shell/opener plugins.
    (Roadmap Phase 5).
 4. Prompt-injection flagging in the approval UI (highlight suspicious
    instructions inside file/diff content before the user approves).
-5. VRAM detection is mocked in `get_hardware_info`; model download in
-   `SetupWizard.tsx` is simulated, not a real Ollama pull (Phase 4).
+5. Legacy `SetupWizard.tsx` still exists for compatibility; the newer Local AI panel uses `get_hardware_profile` and real Ollama pull/chat commands. Onboarding still needs one coherent first-run/reopen flow and frontend listener cleanup tests.
 6. Packaged-app smoke test in CI (currently CI verifies build/packaging,
    not runtime behaviour).
