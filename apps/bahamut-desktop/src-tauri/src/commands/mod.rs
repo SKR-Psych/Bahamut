@@ -1,3 +1,4 @@
+pub mod ai;
 pub mod fileops;
 pub mod files;
 pub mod search;

@@ -1,3 +1,5 @@
+pub mod chat;
+
 use crate::AppState;
 use rusqlite::{params, Connection, OptionalExtension};
 use sha2::{Digest, Sha256};
@@ -115,6 +117,8 @@ pub fn init_schema(conn: &Connection) -> Result<(), String> {
         )
         .map_err(|e| format!("Failed to add snapshots.operation column: {}", e))?;
     }
+
+    chat::init_chat_schema(conn)?;
 
     Ok(())
 }
