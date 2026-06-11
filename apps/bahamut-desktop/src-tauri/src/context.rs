@@ -99,8 +99,8 @@ pub fn assemble_context(
     per_file_limit: usize,
     total_limit: usize,
 ) -> Result<ContextAssembly, String> {
-    let per_file_limit = per_file_limit.max(1).min(DEFAULT_PER_FILE_LIMIT * 16);
-    let total_limit = total_limit.max(1).min(DEFAULT_TOTAL_LIMIT * 16);
+    let per_file_limit = per_file_limit.clamp(1, DEFAULT_PER_FILE_LIMIT * 16);
+    let total_limit = total_limit.clamp(1, DEFAULT_TOTAL_LIMIT * 16);
     let mut remaining = total_limit;
     let mut attachments = Vec::new();
     let mut truncated = false;

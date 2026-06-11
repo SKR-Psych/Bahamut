@@ -63,10 +63,12 @@ pub fn create_conversation(
 
 pub fn list_conversations(conn: &Connection) -> Result<Vec<Conversation>, String> {
     let mut stmt = conn.prepare("SELECT id,title,model,created_at,updated_at FROM conversations ORDER BY updated_at DESC, id DESC").map_err(|e| format!("Failed to list conversations: {e}"))?;
-    stmt.query_map([], map_conversation)
+    let conversations = stmt
+        .query_map([], map_conversation)
         .map_err(|e| e.to_string())?
         .collect::<Result<Vec<_>, _>>()
-        .map_err(|e| format!("Failed to read conversations: {e}"))
+        .map_err(|e| format!("Failed to read conversations: {e}"))?;
+    Ok(conversations)
 }
 
 pub fn get_conversation(conn: &Connection, id: i64) -> Result<Conversation, String> {
@@ -127,21 +129,38 @@ pub fn clear_history(conn: &Connection) -> Result<(), String> {
     Ok(())
 }
 
-pub fn insert_message(
-    conn: &Connection,
-    conversation_id: i64,
-    role: &str,
-    content: &str,
-    model: Option<&str>,
-    attachment_metadata: Option<&str>,
-    status: &str,
-    error: Option<&str>,
-) -> Result<StoredMessage, String> {
-    if !matches!(role, "system" | "user" | "assistant" | "tool") {
+pub struct NewMessage<'a> {
+    pub conversation_id: i64,
+    pub role: &'a str,
+    pub content: &'a str,
+    pub model: Option<&'a str>,
+    pub attachment_metadata: Option<&'a str>,
+    pub status: &'a str,
+    pub error: Option<&'a str>,
+}
+
+pub fn insert_message(conn: &Connection, message: NewMessage<'_>) -> Result<StoredMessage, String> {
+    if !matches!(message.role, "system" | "user" | "assistant" | "tool") {
         return Err("Invalid message role".into());
     }
-    conn.execute("INSERT INTO conversation_messages(conversation_id, role, content, model, attachment_metadata, status, error) VALUES (?1,?2,?3,?4,?5,?6,?7)", params![conversation_id, role, content, model, attachment_metadata, status, error]).map_err(|e| format!("Failed to store message: {e}"))?;
-    conn.execute("UPDATE conversations SET updated_at=CURRENT_TIMESTAMP, model=COALESCE(?1, model) WHERE id=?2", params![model, conversation_id]).ok();
+    conn.execute(
+        "INSERT INTO conversation_messages(conversation_id, role, content, model, attachment_metadata, status, error) VALUES (?1,?2,?3,?4,?5,?6,?7)",
+        params![
+            message.conversation_id,
+            message.role,
+            message.content,
+            message.model,
+            message.attachment_metadata,
+            message.status,
+            message.error
+        ],
+    )
+    .map_err(|e| format!("Failed to store message: {e}"))?;
+    conn.execute(
+        "UPDATE conversations SET updated_at=CURRENT_TIMESTAMP, model=COALESCE(?1, model) WHERE id=?2",
+        params![message.model, message.conversation_id],
+    )
+    .ok();
     let id = conn.last_insert_rowid();
     conn.query_row("SELECT id,conversation_id,role,content,model,attachment_metadata,status,error,created_at FROM conversation_messages WHERE id=?1", params![id], map_message).map_err(|e| format!("Failed to read stored message: {e}"))
 }
@@ -200,13 +219,15 @@ mod tests {
         let conv = create_conversation(&c, "A", Some("m")).unwrap();
         insert_message(
             &c,
-            conv.id,
-            "user",
-            "hello",
-            Some("m"),
-            None,
-            "complete",
-            None,
+            NewMessage {
+                conversation_id: conv.id,
+                role: "user",
+                content: "hello",
+                model: Some("m"),
+                attachment_metadata: None,
+                status: "complete",
+                error: None,
+            },
         )
         .unwrap();
         assert_eq!(read_conversation(&c, conv.id).unwrap().messages.len(), 1);

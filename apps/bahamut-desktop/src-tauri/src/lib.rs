@@ -64,8 +64,6 @@ pub fn run() {
             commands::settings::get_app_settings,
             commands::settings::update_app_settings,
             commands::settings::reset_app_settings,
-            commands::system::get_hardware_info,
-            commands::system::check_ollama_status,
             commands::ai::get_hardware_profile,
             commands::ai::get_model_catalogue,
             commands::ai::get_model_recommendations,

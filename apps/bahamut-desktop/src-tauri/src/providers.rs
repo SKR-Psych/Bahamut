@@ -2,11 +2,15 @@ use crate::catalog::{
     self, HardwareProfile, HardwareTier, ModelCatalogueEntry, ModelRecommendation,
 };
 use crate::commands::settings::AiSettings;
+use futures_util::StreamExt;
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
 use std::sync::atomic::Ordering;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter};
+
+const MAX_STREAM_LINE_BYTES: usize = 1024 * 1024;
+const MAX_STREAM_RESPONSE_BYTES: usize = 64 * 1024 * 1024;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ProviderStatus {
@@ -78,6 +82,13 @@ pub fn validate_ollama_endpoint(endpoint: &str) -> Result<String, String> {
 fn client(timeout_ms: u64) -> Result<reqwest::Client, String> {
     reqwest::Client::builder()
         .timeout(Duration::from_millis(timeout_ms.clamp(1_000, 300_000)))
+        .build()
+        .map_err(|e| format!("Failed to create HTTP client: {e}"))
+}
+
+fn streaming_client(timeout_ms: u64) -> Result<reqwest::Client, String> {
+    reqwest::Client::builder()
+        .connect_timeout(Duration::from_millis(timeout_ms.clamp(1_000, 300_000)))
         .build()
         .map_err(|e| format!("Failed to create HTTP client: {e}"))
 }
@@ -204,6 +215,49 @@ fn parse_progress_line(model: &str, line: &str) -> Result<PullProgress, String> 
     })
 }
 
+fn parse_chat_line(conversation_id: Option<i64>, line: &str) -> Result<ChatChunk, String> {
+    let v: serde_json::Value =
+        serde_json::from_str(line).map_err(|e| format!("Malformed chat stream record: {e}"))?;
+    if let Some(error) = v.get("error").and_then(|e| e.as_str()) {
+        return Err(format!("Ollama chat stream returned an error: {error}"));
+    }
+    let content = v
+        .get("message")
+        .and_then(|m| m.get("content"))
+        .and_then(|c| c.as_str())
+        .unwrap_or("")
+        .to_string();
+    Ok(ChatChunk {
+        conversation_id,
+        content,
+        done: v.get("done").and_then(|d| d.as_bool()).unwrap_or(false),
+        error: None,
+    })
+}
+
+fn drain_jsonl_lines(
+    buffer: &mut String,
+    mut on_line: impl FnMut(&str) -> Result<bool, String>,
+) -> Result<bool, String> {
+    while let Some(pos) = buffer.find('\n') {
+        let line: String = buffer.drain(..=pos).collect();
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        if trimmed.len() > MAX_STREAM_LINE_BYTES {
+            return Err("Ollama stream record exceeded the line-size limit".to_string());
+        }
+        if on_line(trimmed)? {
+            return Ok(true);
+        }
+    }
+    if buffer.len() > MAX_STREAM_LINE_BYTES {
+        return Err("Ollama stream record exceeded the line-size limit".to_string());
+    }
+    Ok(false)
+}
+
 pub async fn pull_model(
     app: AppHandle,
     settings: AiSettings,
@@ -211,9 +265,10 @@ pub async fn pull_model(
     generation: std::sync::Arc<std::sync::atomic::AtomicU64>,
 ) -> Result<(), String> {
     let endpoint = validate_ollama_endpoint(&settings.ollama_endpoint)?;
-    let my_generation = generation.load(Ordering::SeqCst);
-    let r = client(settings.request_timeout_ms)?
+    let my_generation = generation.fetch_add(1, Ordering::SeqCst) + 1;
+    let r = streaming_client(settings.request_timeout_ms)?
         .post(format!("{endpoint}/api/pull"))
+        .timeout(Duration::from_millis(settings.request_timeout_ms))
         .json(&serde_json::json!({"model": model, "stream": true}))
         .send()
         .await
@@ -224,19 +279,44 @@ pub async fn pull_model(
             r.status()
         ));
     }
-    let text = r
-        .text()
-        .await
-        .map_err(|e| format!("Failed to read pull stream: {e}"))?;
-    for line in text.lines().filter(|l| !l.trim().is_empty()) {
+    let mut stream = r.bytes_stream();
+    let mut buffer = String::new();
+    let mut total_bytes = 0usize;
+    while let Some(chunk) = stream.next().await {
         if generation.load(Ordering::SeqCst) != my_generation {
             let _ = app.emit("local-ai://pull-cancelled", &model);
             return Ok(());
         }
-        let progress = parse_progress_line(&model, line)?;
-        let _ = app.emit("local-ai://pull-progress", &progress);
+        let chunk = chunk.map_err(|e| {
+            if e.is_timeout() {
+                "Timed out while reading Ollama pull stream".to_string()
+            } else {
+                format!("Failed to read pull stream: {e}")
+            }
+        })?;
+        total_bytes += chunk.len();
+        if total_bytes > MAX_STREAM_RESPONSE_BYTES {
+            return Err("Ollama pull stream exceeded the response-size limit".to_string());
+        }
+        buffer.push_str(&String::from_utf8_lossy(&chunk));
+        if drain_jsonl_lines(&mut buffer, |line| {
+            let progress = parse_progress_line(&model, line)?;
+            let done = progress.done || progress.status == "success";
+            let _ = app.emit("local-ai://pull-progress", &progress);
+            Ok(done)
+        })? {
+            return Ok(());
+        }
     }
-    Ok(())
+    if !buffer.trim().is_empty() {
+        let progress = parse_progress_line(&model, buffer.trim())?;
+        let done = progress.done || progress.status == "success";
+        let _ = app.emit("local-ai://pull-progress", &progress);
+        if done {
+            return Ok(());
+        }
+    }
+    Err("Ollama pull stream closed before completion".to_string())
 }
 
 pub async fn chat(
@@ -246,8 +326,22 @@ pub async fn chat(
     generation: std::sync::Arc<std::sync::atomic::AtomicU64>,
 ) -> Result<String, String> {
     let endpoint = validate_ollama_endpoint(&settings.ollama_endpoint)?;
-    let my_generation = generation.load(Ordering::SeqCst);
-    let r = client(settings.request_timeout_ms)?.post(format!("{endpoint}/api/chat")).json(&serde_json::json!({"model": req.model, "messages": req.messages, "stream": true, "options": {"temperature": req.temperature.unwrap_or(settings.temperature), "num_predict": req.max_output_tokens.unwrap_or(settings.max_output_tokens)}})).send().await.map_err(|e| format!("Failed to start chat: {e}"))?;
+    let my_generation = generation.fetch_add(1, Ordering::SeqCst) + 1;
+    let r = streaming_client(settings.request_timeout_ms)?
+        .post(format!("{endpoint}/api/chat"))
+        .timeout(Duration::from_millis(settings.request_timeout_ms))
+        .json(&serde_json::json!({
+            "model": req.model,
+            "messages": req.messages,
+            "stream": true,
+            "options": {
+                "temperature": req.temperature.unwrap_or(settings.temperature),
+                "num_predict": req.max_output_tokens.unwrap_or(settings.max_output_tokens),
+            },
+        }))
+        .send()
+        .await
+        .map_err(|e| format!("Failed to start chat: {e}"))?;
     if !r.status().is_success() {
         return Err(format!(
             "Ollama returned HTTP {} while chatting",
@@ -255,38 +349,50 @@ pub async fn chat(
         ));
     }
     let mut full = String::new();
-    let text = r
-        .text()
-        .await
-        .map_err(|e| format!("Failed to read chat stream: {e}"))?;
-    for line in text.lines().filter(|l| !l.trim().is_empty()) {
+    let mut stream = r.bytes_stream();
+    let mut buffer = String::new();
+    let mut total_bytes = 0usize;
+    while let Some(chunk) = stream.next().await {
         if generation.load(Ordering::SeqCst) != my_generation {
             let _ = app.emit("local-ai://chat-cancelled", req.conversation_id);
             return Ok(full);
         }
-        let v: serde_json::Value =
-            serde_json::from_str(line).map_err(|e| format!("Malformed chat response: {e}"))?;
-        let content = v
-            .get("message")
-            .and_then(|m| m.get("content"))
-            .and_then(|c| c.as_str())
-            .unwrap_or("")
-            .to_string();
-        if !content.is_empty() {
-            full.push_str(&content);
+        let chunk = chunk.map_err(|e| {
+            if e.is_timeout() {
+                "Timed out while reading Ollama chat stream".to_string()
+            } else {
+                format!("Failed to read chat stream: {e}")
+            }
+        })?;
+        total_bytes += chunk.len();
+        if total_bytes > MAX_STREAM_RESPONSE_BYTES {
+            return Err("Ollama chat stream exceeded the response-size limit".to_string());
         }
-        let done = v.get("done").and_then(|d| d.as_bool()).unwrap_or(false);
-        let _ = app.emit(
-            "local-ai://chat-chunk",
-            &ChatChunk {
-                conversation_id: req.conversation_id,
-                content,
-                done,
-                error: None,
-            },
-        );
+        buffer.push_str(&String::from_utf8_lossy(&chunk));
+        if drain_jsonl_lines(&mut buffer, |line| {
+            let chunk = parse_chat_line(req.conversation_id, line)?;
+            if !chunk.content.is_empty() {
+                full.push_str(&chunk.content);
+            }
+            let done = chunk.done;
+            let _ = app.emit("local-ai://chat-chunk", &chunk);
+            Ok(done)
+        })? {
+            return Ok(full);
+        }
     }
-    Ok(full)
+    if !buffer.trim().is_empty() {
+        let chunk = parse_chat_line(req.conversation_id, buffer.trim())?;
+        if !chunk.content.is_empty() {
+            full.push_str(&chunk.content);
+        }
+        let done = chunk.done;
+        let _ = app.emit("local-ai://chat-chunk", &chunk);
+        if done {
+            return Ok(full);
+        }
+    }
+    Err("Ollama chat stream closed before completion".to_string())
 }
 
 pub fn catalogue() -> Vec<ModelCatalogueEntry> {
@@ -370,5 +476,48 @@ mod tests {
         let p =
             parse_progress_line("m", r#"{"status":"pulling","completed":5,"total":10}"#).unwrap();
         assert_eq!(p.completed, Some(5));
+    }
+
+    #[test]
+    fn jsonl_drain_keeps_partial_lines_and_handles_multiple_records() {
+        let mut buffer = "\n{\"status\":\"pull".to_string();
+        let mut seen = Vec::new();
+        assert!(!drain_jsonl_lines(&mut buffer, |line| {
+            seen.push(line.to_string());
+            Ok(false)
+        })
+        .unwrap());
+        assert!(seen.is_empty(), "partial records must not be emitted");
+
+        buffer.push_str("ing\"}\n{\"status\":\"success\"}\n");
+        assert!(drain_jsonl_lines(&mut buffer, |line| {
+            seen.push(line.to_string());
+            Ok(line.contains("success"))
+        })
+        .unwrap());
+        assert_eq!(
+            seen,
+            vec![r#"{"status":"pulling"}"#, r#"{"status":"success"}"#]
+        );
+        assert!(buffer.is_empty());
+    }
+
+    #[test]
+    fn chat_stream_line_parses_token_and_completion() {
+        let chunk = parse_chat_line(
+            Some(42),
+            r#"{"message":{"role":"assistant","content":"hello"},"done":true}"#,
+        )
+        .unwrap();
+        assert_eq!(chunk.conversation_id, Some(42));
+        assert_eq!(chunk.content, "hello");
+        assert!(chunk.done);
+    }
+
+    #[test]
+    fn malformed_stream_records_are_reported_without_body_echo() {
+        let err = parse_chat_line(None, "{not-json}").unwrap_err();
+        assert!(err.contains("Malformed chat stream record"));
+        assert!(!err.contains("not-json"));
     }
 }
