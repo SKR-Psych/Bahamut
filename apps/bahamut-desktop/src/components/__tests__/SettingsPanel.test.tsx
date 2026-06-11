@@ -18,6 +18,18 @@ const settings: AppSettings = {
     confirm_tab_close: true,
     theme: "dark",
   },
+  ai: {
+    local_ai_enabled: false,
+    provider: "ollama",
+    active_model: null,
+    context_limit: 256 * 1024,
+    per_file_attachment_limit: 64 * 1024,
+    history_persistence: true,
+    ollama_endpoint: "http://127.0.0.1:11434",
+    request_timeout_ms: 120000,
+    temperature: 0.2,
+    max_output_tokens: 2048,
+  },
 };
 
 describe("SettingsPanel", () => {
@@ -71,6 +83,7 @@ describe("SettingsPanel", () => {
       max_file_size_bytes: 4 * 1024 * 1024,
       max_search_file_size_bytes: 1024 * 1024,
       ui_prefs: { ...settings.ui_prefs, solid_mode: true },
+      ai: settings.ai,
     });
     expect(onSettingsChanged).toHaveBeenCalledWith(persisted);
   });

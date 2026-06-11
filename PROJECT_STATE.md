@@ -93,10 +93,11 @@ No fs/shell/opener plugins.
 
 ## Current Work
 
-- (none — platform consolidation completed 2026-06-10)
+- **2026-06-11** (Codex): continuing `feature/local-ai-chat`. Remote fetch/push is blocked in this environment by a CONNECT 403, so work is preserved locally on the feature branch. Rust verification is also blocked at dependency-index fetch before compilation; frontend typecheck/tests/build pass. Remaining before merge: restore/fetch remote branch if available, complete true byte-stream handling, add broader mock HTTP/frontend tests, run Rust clippy/tests and Tauri packaging when registry access is available.
 
 ## Recently Completed
 
+- **2026-06-11** (Codex): integrated a local AI/read-only chat slice: provider-neutral catalogue and recommendations, loopback-only Ollama provider commands, cancellation generation state, explicit attachment assembly with sandbox revalidation and secret detection, SQLite conversation tables/CRUD, AI settings validation, a modular Local AI React panel, and future Phase 12–14 roadmap/vision/security docs. Normal chat content is not written to the audit chain; secret approvals audit metadata only.
 - **2026-06-11** (Claude Code): fixed undersized app icons. New derived
   master `assets/branding/derived/Bahamut App Icon Master.png` (crop+pad of
   the untouched source; emblem fill ~60% → ~85%); `npm run icons` now
@@ -137,7 +138,6 @@ No fs/shell/opener plugins.
    (Roadmap Phase 5).
 4. Prompt-injection flagging in the approval UI (highlight suspicious
    instructions inside file/diff content before the user approves).
-5. VRAM detection is mocked in `get_hardware_info`; model download in
-   `SetupWizard.tsx` is simulated, not a real Ollama pull (Phase 4).
+5. Legacy `get_hardware_info`/`SetupWizard.tsx` still exist for compatibility; the newer Local AI panel uses `get_hardware_profile` and real Ollama pull/chat commands. The Rust stream reader currently emits parsed chunks after receiving the HTTP body rather than consuming the socket incrementally; replace with byte-stream processing before claiming full streaming fidelity.
 6. Packaged-app smoke test in CI (currently CI verifies build/packaging,
    not runtime behaviour).

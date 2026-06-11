@@ -60,6 +60,7 @@ export function SettingsPanel({ settings, onSettingsChanged }: SettingsPanelProp
         max_file_size_bytes: maxFile,
         max_search_file_size_bytes: maxSearch,
         ui_prefs: prefs,
+        ai: settings.ai,
       });
       onSettingsChanged(persisted);
       setFeedback("Settings saved");

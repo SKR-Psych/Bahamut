@@ -47,11 +47,75 @@ impl Default for UiPrefs {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AiSettings {
+    #[serde(default)]
+    pub local_ai_enabled: bool,
+    #[serde(default = "default_provider")]
+    pub provider: String,
+    #[serde(default)]
+    pub active_model: Option<String>,
+    #[serde(default = "default_context_limit")]
+    pub context_limit: usize,
+    #[serde(default = "default_attachment_limit")]
+    pub per_file_attachment_limit: usize,
+    #[serde(default = "default_true")]
+    pub history_persistence: bool,
+    #[serde(default = "default_ollama_endpoint")]
+    pub ollama_endpoint: String,
+    #[serde(default = "default_timeout")]
+    pub request_timeout_ms: u64,
+    #[serde(default = "default_temperature")]
+    pub temperature: f32,
+    #[serde(default = "default_max_tokens")]
+    pub max_output_tokens: u32,
+}
+
+fn default_provider() -> String {
+    "ollama".to_string()
+}
+fn default_context_limit() -> usize {
+    256 * 1024
+}
+fn default_attachment_limit() -> usize {
+    64 * 1024
+}
+fn default_ollama_endpoint() -> String {
+    "http://127.0.0.1:11434".to_string()
+}
+fn default_timeout() -> u64 {
+    120_000
+}
+fn default_temperature() -> f32 {
+    0.2
+}
+fn default_max_tokens() -> u32 {
+    2048
+}
+
+impl Default for AiSettings {
+    fn default() -> Self {
+        Self {
+            local_ai_enabled: false,
+            provider: default_provider(),
+            active_model: None,
+            context_limit: default_context_limit(),
+            per_file_attachment_limit: default_attachment_limit(),
+            history_persistence: true,
+            ollama_endpoint: default_ollama_endpoint(),
+            request_timeout_ms: default_timeout(),
+            temperature: default_temperature(),
+            max_output_tokens: default_max_tokens(),
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AppSettings {
     pub max_file_size_bytes: u64,
     pub max_search_file_size_bytes: u64,
     pub ui_prefs: UiPrefs,
+    pub ai: AiSettings,
 }
 
 impl Default for AppSettings {
@@ -60,6 +124,7 @@ impl Default for AppSettings {
             max_file_size_bytes: database::DEFAULT_MAX_FILE_SIZE,
             max_search_file_size_bytes: database::DEFAULT_MAX_SEARCH_FILE_SIZE,
             ui_prefs: UiPrefs::default(),
+            ai: AiSettings::default(),
         }
     }
 }
@@ -68,10 +133,14 @@ pub fn get_settings_core(conn: &Connection) -> Result<AppSettings, String> {
     let ui_prefs = database::get_setting(conn, database::UI_PREFS_KEY)?
         .and_then(|raw| serde_json::from_str::<UiPrefs>(&raw).ok())
         .unwrap_or_default();
+    let ai = database::get_setting(conn, "ai_settings")?
+        .and_then(|raw| serde_json::from_str::<AiSettings>(&raw).ok())
+        .unwrap_or_default();
     Ok(AppSettings {
         max_file_size_bytes: database::get_max_file_size(conn),
         max_search_file_size_bytes: database::get_max_search_file_size(conn),
         ui_prefs,
+        ai,
     })
 }
 
@@ -89,6 +158,27 @@ fn validate(settings: &AppSettings) -> Result<(), String> {
                 label, MIN_SIZE_BYTES, MAX_SIZE_BYTES
             ));
         }
+    }
+    if settings.ai.provider != "ollama" {
+        return Err(
+            "Only the provider-neutral ollama backend is available in this milestone".into(),
+        );
+    }
+    crate::providers::validate_ollama_endpoint(&settings.ai.ollama_endpoint)?;
+    if !(1_000..=300_000).contains(&settings.ai.request_timeout_ms) {
+        return Err("AI request timeout must be between 1s and 5m".into());
+    }
+    if !(0.0..=2.0).contains(&settings.ai.temperature) {
+        return Err("Temperature must be between 0.0 and 2.0".into());
+    }
+    if !(1..=32_768).contains(&settings.ai.max_output_tokens) {
+        return Err("Maximum output tokens must be between 1 and 32768".into());
+    }
+    if !(1024..=4 * 1024 * 1024).contains(&settings.ai.context_limit) {
+        return Err("Context limit must be between 1 KiB and 4 MiB".into());
+    }
+    if !(1024..=1024 * 1024).contains(&settings.ai.per_file_attachment_limit) {
+        return Err("Per-file attachment limit must be between 1 KiB and 1 MiB".into());
     }
     if !ALLOWED_THEMES.contains(&settings.ui_prefs.theme.as_str()) {
         return Err(format!(
@@ -115,6 +205,9 @@ pub fn update_settings_core(conn: &Connection, settings: &AppSettings) -> Result
     let prefs_json = serde_json::to_string(&settings.ui_prefs)
         .map_err(|e| format!("Failed to serialize UI preferences: {}", e))?;
     database::set_setting(conn, database::UI_PREFS_KEY, &prefs_json)?;
+    let ai_json = serde_json::to_string(&settings.ai)
+        .map_err(|e| format!("Failed to serialize AI settings: {}", e))?;
+    database::set_setting(conn, "ai_settings", &ai_json)?;
 
     database::log_action_with_conn(
         conn,
@@ -124,6 +217,7 @@ pub fn update_settings_core(conn: &Connection, settings: &AppSettings) -> Result
                 "max_file_size_bytes": settings.max_file_size_bytes,
                 "max_search_file_size_bytes": settings.max_search_file_size_bytes,
                 "ui_prefs": settings.ui_prefs,
+                "ai": {"local_ai_enabled": settings.ai.local_ai_enabled, "provider": settings.ai.provider, "active_model": settings.ai.active_model, "history_persistence": settings.ai.history_persistence, "ollama_endpoint": settings.ai.ollama_endpoint},
             })
             .to_string(),
         ),
@@ -136,6 +230,7 @@ pub fn reset_settings_core(conn: &Connection) -> Result<AppSettings, String> {
     database::delete_setting(conn, database::MAX_FILE_SIZE_KEY)?;
     database::delete_setting(conn, database::MAX_SEARCH_FILE_SIZE_KEY)?;
     database::delete_setting(conn, database::UI_PREFS_KEY)?;
+    database::delete_setting(conn, "ai_settings")?;
     database::log_action_with_conn(conn, "reset_settings", None, "success", None)?;
     Ok(AppSettings::default())
 }

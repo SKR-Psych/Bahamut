@@ -49,3 +49,25 @@ TypeScript + Monaco (ADR-002).
   execution (zero auto-execution).
 - **Audit integration**: executed commands and outcomes recorded in the
   hash-chained audit log; child-process environment scrubbing.
+
+## Future Expansion Phases (planning only)
+
+The following phases are documented as product direction only. They are not implemented in the current application and must not be represented as available functionality.
+
+### Phase 12 — Native Git and Software Delivery Workflows
+
+Planned native Git and delivery workflows include branch/worktree/stash/tag graph inspection, explicit commit composition, pull-request preparation, CI/CD status review and policy-guarded release/deployment checklists. See `docs/vision/git-workflows.md`.
+
+### Phase 13 — Bahamut Data Intelligence and Governance
+
+Planned data-intelligence work includes metadata connectors, lineage, ownership, glossary, data-quality and data-contract review, governed approvals and retention-aware metadata summaries. See `docs/vision/data-intelligence.md`.
+
+### Phase 14 — Native Data, AI and Agent Observability
+
+Planned observability work includes traces, spans, prompt/model/tool-call event views, redaction, retention controls, agent run replay and interoperability with accepted telemetry formats. See `docs/vision/observability.md`.
+
+### Shared Future Platform Foundation
+
+Phases 12–14 share a future platform foundation: connector SDK, metadata model, graph abstraction, scheduling, event and telemetry bus, policy engine, secrets boundary, permission model, audit system, extension API, agent tool registry, deployment modes, retention controls and interoperability formats.
+
+All future integrations with Git, OpenMetadata, Soda Core, OpenTelemetry and Langfuse require clean-room implementation discipline and licence review before adoption.
